@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python3 -c \"import ast, sys; ast.parse\\(open\\('app/main.py'\\).read\\(\\)\\); ast.parse\\(open\\('app/config.py'\\).read\\(\\)\\); ast.parse\\(open\\('app/database.py'\\).read\\(\\)\\); ast.parse\\(open\\('app/models/message.py'\\).read\\(\\)\\); ast.parse\\(open\\('tests/test_main.py'\\).read\\(\\)\\); print\\('All Python files parse OK'\\)\")",
+      "Bash(chmod +x /home/apoclyps/workspace/gameontabletop/scripts/setup.sh)",
+      "Bash(bash -n /home/apoclyps/workspace/gameontabletop/scripts/setup.sh)",
+      "Skill(update-config)",
+      "Bash(gh run *)",
+      "Bash(gh auth *)",
+      "Bash(gh api *)",
+      "WebFetch(domain:github.com)",
+      "Bash(curl -s \"https://api.github.com/repos/apoclyps/gameontabletop/actions/jobs/75158262231\")",
+      "Bash(curl -sL \"https://api.github.com/repos/apoclyps/gameontabletop/actions/jobs/75158262231/logs\")",
+      "Bash(curl -sI \"https://api.github.com/repos/apoclyps/gameontabletop/actions/jobs/75158262231/logs\")",
+      "Bash(curl -s \"https://api.github.com/repos/apoclyps/gameontabletop/actions/jobs/75158782377\")",
+      "Bash(npx skills *)",
+      "Bash(claude mcp *)"
+    ]
+  }
+}

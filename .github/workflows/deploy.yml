@@ -1,0 +1,124 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  migrate:
+    name: Run database migrations
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate DATABASE_DIRECT_URL secret
+        run: |
+          if [ -z "${{ secrets.DATABASE_DIRECT_URL }}" ]; then
+            echo "::error::DATABASE_DIRECT_URL secret is not set."
+            echo "::error::Add it in GitHub → Settings → Secrets → Actions."
+            echo "::error::Use the Supabase session pooler URL (port 5432 on the pooler host):"
+            echo "::error::  postgresql+asyncpg://postgres.[ref]:[password]@aws-0-[region].pooler.supabase.com:5432/postgres"
+            exit 1
+          fi
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: uv pip install --system -r requirements.txt
+
+      - name: Run migrations
+        working-directory: backend
+        run: uv run alembic upgrade head
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_DIRECT_URL }}
+
+  deploy-backend:
+    name: Deploy backend to Vercel
+    runs-on: ubuntu-latest
+    needs: [migrate]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node (for Vercel CLI)
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+
+      - name: Install Vercel CLI
+        run: npm install -g vercel@latest
+
+      - name: Pull Vercel environment
+        working-directory: backend
+        run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_BACKEND_PROJECT_ID }}
+
+      - name: Build backend
+        working-directory: backend
+        run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_BACKEND_PROJECT_ID }}
+
+      - name: Patch build output with projectSettings
+        working-directory: backend
+        run: |
+          cfg=".vercel/output/config.json"
+          tmp=$(mktemp)
+          jq '. + {"projectSettings": {"framework": null}}' "$cfg" > "$tmp" && mv "$tmp" "$cfg"
+
+      - name: Deploy backend
+        working-directory: backend
+        run: vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }}
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_BACKEND_PROJECT_ID }}
+
+  deploy-frontend:
+    name: Deploy frontend to Vercel
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install Vercel CLI
+        run: npm install -g vercel@latest
+
+      - name: Pull Vercel environment
+        working-directory: frontend
+        run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_FRONTEND_PROJECT_ID }}
+
+      - name: Build frontend
+        working-directory: frontend
+        run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_FRONTEND_PROJECT_ID }}
+
+      - name: Deploy frontend
+        working-directory: frontend
+        run: vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }}
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_FRONTEND_PROJECT_ID }}

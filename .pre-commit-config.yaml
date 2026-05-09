@@ -1,0 +1,75 @@
+# See https://pre-commit.com for more information
+# See https://pre-commit.com/hooks.html for more hooks
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-added-large-files
+        args: ['--maxkb=5000']
+      - id: check-merge-conflict
+      - id: check-toml
+      - id: debug-statements
+
+  - repo: https://github.com/asottile/pyupgrade
+    rev: v3.19.1
+    hooks:
+      - id: pyupgrade
+        args: [--py312-plus]
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.14.13
+    hooks:
+      # Run the linter
+      - id: ruff-check
+        args: [--fix]
+      # Run the formatter
+      - id: ruff-format
+
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.19.1
+    hooks:
+      - id: mypy
+        additional_dependencies:
+          - sqlalchemy[mypy]
+          - pydantic
+          - fastapi
+          - types-requests
+        args: [--ignore-missing-imports, --no-strict-optional]
+
+  - repo: local
+    hooks:
+      - id: ty-backend
+        name: Type check backend with ty
+        entry: bash -c 'cd backend && uv run ty check api/'
+        language: system
+        files: ^backend/api/.*\.py$
+        pass_filenames: false
+        require_serial: true
+
+      - id: prettier-frontend
+        name: Format frontend files with Prettier
+        entry: bash -c 'cd frontend && files=("${@#frontend/}") && npx prettier --write "${files[@]}"' --
+        language: system
+        files: ^frontend/src/.*\.(js|ts|vue)$
+        pass_filenames: true
+
+      - id: pytest-backend
+        name: Run backend tests
+        entry: bash -c 'cd backend && uv run pytest'
+        language: system
+        files: ^backend/.*\.py$
+        pass_filenames: false
+        require_serial: true
+        stages: [pre-commit]
+
+      - id: vitest-frontend
+        name: Run frontend unit tests
+        entry: bash -c 'cd frontend && npm run test:unit'
+        language: system
+        files: ^frontend/src/.*\.(js|ts|vue)$
+        pass_filenames: false
+        require_serial: true
+        stages: [pre-commit]
