@@ -11,7 +11,11 @@ _session_factory = None
 def _get_engine():
     global _engine
     if _engine is None:
-        _engine = create_async_engine(settings.database_url, echo=False)
+        _engine = create_async_engine(
+            settings.database_url,
+            echo=False,
+            connect_args={"statement_cache_size": 0},
+        )
     return _engine
 
 
