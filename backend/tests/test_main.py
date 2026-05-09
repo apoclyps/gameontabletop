@@ -9,7 +9,7 @@ async def test_root():
     async with AsyncClient(
         transport=ASGITransport(app=app), base_url="http://test"
     ) as client:
-        response = await client.get("/")
+        response = await client.get("/api/")
     assert response.status_code == 200
     assert response.json() == {"message": "Hello World"}
 
@@ -19,6 +19,6 @@ async def test_health():
     async with AsyncClient(
         transport=ASGITransport(app=app), base_url="http://test"
     ) as client:
-        response = await client.get("/health")
+        response = await client.get("/api/health")
     assert response.status_code == 200
     assert response.json() == {"status": "ok"}
