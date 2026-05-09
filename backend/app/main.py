@@ -2,6 +2,10 @@ from fastapi import APIRouter, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.auth import router as auth_router
+from app.api.groups import invites_router, router as groups_router
+from app.api.locations import router as locations_router
+from app.api.occurrences import router as occurrences_router
+from app.api.series import router as series_router
 from app.api.users import router as users_router
 from app.config import settings
 
@@ -19,6 +23,11 @@ api_router = APIRouter(prefix="/api")
 
 api_router.include_router(auth_router)
 api_router.include_router(users_router)
+api_router.include_router(groups_router)
+api_router.include_router(invites_router)
+api_router.include_router(locations_router)
+api_router.include_router(series_router)
+api_router.include_router(occurrences_router)
 
 
 @api_router.get("/")

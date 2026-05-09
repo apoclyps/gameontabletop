@@ -51,3 +51,30 @@ def send_password_reset_email(to_email: str, token: str) -> None:
         <p>If you did not request this, you can ignore this email.</p>
         """,
     )
+
+
+def send_group_invite_email(to_email: str, group_name: str, inviter_username: str, invite_url: str) -> None:
+    _send(
+        to_email,
+        f"You're invited to join {group_name} on Game On Tabletop",
+        f"""
+        <p><strong>{inviter_username}</strong> has invited you to join the board game group
+        <strong>{group_name}</strong> on Game On Tabletop.</p>
+        <p><a href="{invite_url}">Click here to accept the invitation</a></p>
+        <p>This link expires in 7 days.</p>
+        """,
+    )
+
+
+def send_occurrence_notification_email(
+    to_email: str, series_title: str, occurrence_date: str, group_name: str, occurrence_url: str
+) -> None:
+    _send(
+        to_email,
+        f"Next {series_title}: {occurrence_date}",
+        f"""
+        <p>A new board game night has been scheduled for <strong>{group_name}</strong>.</p>
+        <p><strong>{series_title}</strong> — {occurrence_date}</p>
+        <p><a href="{occurrence_url}">View details and RSVP</a></p>
+        """,
+    )
