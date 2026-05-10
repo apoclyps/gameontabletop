@@ -1,3 +1,4 @@
+from app.models.collection import UserFriendship, UserGameCollection
 from app.models.group import Group, GroupInvite, GroupMember
 from app.models.location import Location
 from app.models.message import Message
@@ -14,4 +15,6 @@ __all__ = [
     "NightSeries",
     "Rsvp",
     "User",
+    "UserFriendship",
+    "UserGameCollection",
 ]

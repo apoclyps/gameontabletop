@@ -21,7 +21,7 @@
         <!-- Desktop nav links -->
         <nav class="hidden md:flex items-center gap-1 flex-1 ml-4">
           <NavItem to="/dashboard">Dashboard</NavItem>
-          <NavItem to="/games">Games</NavItem>
+          <NavItem to="/collection">Games</NavItem>
           <NavItem to="/friends">Friends</NavItem>
         </nav>
 
@@ -134,7 +134,7 @@
                 <DrawerItem to="/dashboard" @click="drawerOpen = false">
                   <HomeIcon class="w-5 h-5" /> Dashboard
                 </DrawerItem>
-                <DrawerItem to="/games" @click="drawerOpen = false">
+                <DrawerItem to="/collection" @click="drawerOpen = false">
                   <PuzzlePieceIcon class="w-5 h-5" /> Games
                 </DrawerItem>
                 <DrawerItem to="/friends" @click="drawerOpen = false">

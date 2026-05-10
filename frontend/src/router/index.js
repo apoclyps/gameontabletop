@@ -64,6 +64,26 @@ const routes = [
     meta: { layout: "app", requiresAuth: true, title: "Night" },
   },
   {
+    path: "/collection",
+    component: () => import("../pages/CollectionPage.vue"),
+    meta: { layout: "app", requiresAuth: true, title: "My Collection" },
+  },
+  {
+    path: "/friends",
+    component: () => import("../pages/FriendsPage.vue"),
+    meta: { layout: "app", requiresAuth: true, title: "Friends" },
+  },
+  {
+    path: "/friends/games",
+    component: () => import("../pages/FriendsGamesPage.vue"),
+    meta: { layout: "app", requiresAuth: true, title: "Friends' Games" },
+  },
+  {
+    path: "/users/:userId/collection",
+    component: () => import("../pages/FriendCollectionPage.vue"),
+    meta: { layout: "app", requiresAuth: true, title: "Collection" },
+  },
+  {
     path: "/invites/:token",
     component: () => import("../pages/InvitePage.vue"),
     meta: { layout: "auth", title: "Join group" },

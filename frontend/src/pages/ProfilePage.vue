@@ -23,6 +23,14 @@
             <p class="text-xs text-slate-400 dark:text-slate-500">
               Member since {{ new Date(user.created_at).toLocaleDateString() }}
             </p>
+            <div v-if="collectionStats" class="mt-2 flex gap-3">
+              <router-link to="/collection" class="text-xs text-primary-600 dark:text-primary-400 hover:underline">
+                {{ collectionStats.own }} {{ collectionStats.own === 1 ? 'game' : 'games' }} owned
+              </router-link>
+              <span v-if="collectionStats.wishlist > 0" class="text-xs text-slate-400">
+                · {{ collectionStats.wishlist }} on wishlist
+              </span>
+            </div>
           </div>
         </div>
       </BaseCard>
@@ -62,15 +70,26 @@ const loading = ref(true);
 const fetchError = ref(null);
 const saving = ref(false);
 const form = reactive({ display_name: "", bio: "", avatar_url: "" });
+const collectionStats = ref(null);
 
 onMounted(async () => {
   try {
-    const res = await request("/api/users/me");
-    if (!res.ok) throw new Error("Failed to load profile");
-    user.value = await res.json();
+    const [uRes, cRes] = await Promise.all([
+      request("/api/users/me"),
+      request("/api/users/me/collection"),
+    ]);
+    if (!uRes.ok) throw new Error("Failed to load profile");
+    user.value = await uRes.json();
     form.display_name = user.value.display_name || "";
     form.bio = user.value.bio || "";
     form.avatar_url = user.value.avatar_url || "";
+    if (cRes.ok) {
+      const entries = await cRes.json();
+      collectionStats.value = {
+        own: entries.filter((e) => e.status === "own").length,
+        wishlist: entries.filter((e) => e.status === "wishlist").length,
+      };
+    }
   } catch (err) {
     fetchError.value = err.message;
   } finally {

@@ -2,6 +2,8 @@ from fastapi import APIRouter, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.auth import router as auth_router
+from app.api.collection import router as collection_router
+from app.api.friends import router as friends_router
 from app.api.groups import invites_router, router as groups_router
 from app.api.locations import router as locations_router
 from app.api.occurrences import router as occurrences_router
@@ -28,6 +30,8 @@ api_router.include_router(invites_router)
 api_router.include_router(locations_router)
 api_router.include_router(series_router)
 api_router.include_router(occurrences_router)
+api_router.include_router(collection_router)
+api_router.include_router(friends_router)
 
 
 @api_router.get("/")
