@@ -24,7 +24,6 @@
           <NavItem to="/game-nights">Game Nights</NavItem>
           <NavItem to="/collection">Games</NavItem>
           <NavItem to="/friends">Friends</NavItem>
-          <NavItem to="/explore">Explore</NavItem>
         </nav>
 
         <!-- Right side controls -->
@@ -146,9 +145,6 @@
                   <UserGroupIcon class="w-5 h-5" /> Friends
                 </DrawerItem>
                 <div class="border-t border-slate-200 dark:border-slate-700 my-2" />
-                <DrawerItem to="/explore" @click="drawerOpen = false">
-                  <GlobeAltIcon class="w-5 h-5" /> Explore
-                </DrawerItem>
                 <DrawerItem to="/profile" @click="drawerOpen = false">
                   <UserCircleIcon class="w-5 h-5" /> Profile
                 </DrawerItem>
@@ -197,7 +193,6 @@ import {
   Bars3Icon,
   CalendarDaysIcon,
   ChevronDownIcon,
-  GlobeAltIcon,
   HomeIcon,
   MoonIcon,
   PuzzlePieceIcon,
