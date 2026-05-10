@@ -1,41 +1,32 @@
 <template>
-  <div class="min-h-screen bg-gray-50 flex items-center justify-center">
-    <div class="bg-white rounded-xl shadow-md p-10 max-w-md w-full">
-      <h1 class="text-2xl font-bold text-gray-800 mb-6 text-center">Create account</h1>
-      <div v-if="success" class="text-green-600 text-sm text-center">
-        Registration successful! Check your email to verify your account.
-      </div>
-      <form v-else @submit.prevent="submit" class="space-y-4">
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
-          <input v-model="email" type="email" required autocomplete="email"
-            class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Username</label>
-          <input v-model="username" type="text" required autocomplete="username"
-            class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Password</label>
-          <input v-model="password" type="password" required autocomplete="new-password"
-            class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-        </div>
-        <p v-if="error" class="text-red-500 text-sm">{{ error }}</p>
-        <button type="submit" :disabled="loading"
-          class="w-full bg-blue-600 text-white rounded-lg py-2 text-sm font-medium hover:bg-blue-700 disabled:opacity-50">
-          {{ loading ? "Creating account…" : "Create account" }}
-        </button>
-      </form>
-      <p class="mt-4 text-center text-sm text-gray-500">
-        Already have an account? <router-link to="/login" class="text-blue-600 hover:underline">Sign in</router-link>
-      </p>
-    </div>
+  <div>
+    <h1 class="text-2xl font-bold text-slate-900 dark:text-white mb-1">Create account</h1>
+    <p class="text-sm text-slate-500 dark:text-slate-400 mb-6">Join the tabletop community</p>
+
+    <BaseAlert v-if="success" variant="success" message="Registration successful! Check your email to verify your account." />
+
+    <form v-else @submit.prevent="submit" class="space-y-4">
+      <BaseInput v-model="email" label="Email" type="email" required autocomplete="email" />
+      <BaseInput v-model="username" label="Username" type="text" required autocomplete="username" />
+      <BaseInput v-model="password" label="Password" type="password" required autocomplete="new-password" />
+
+      <BaseAlert v-if="error" variant="error" :message="error" />
+
+      <BaseButton type="submit" :loading="loading" block>Create account</BaseButton>
+    </form>
+
+    <p class="mt-5 text-center text-sm text-slate-500">
+      Already have an account?
+      <router-link to="/login" class="text-primary-600 hover:text-primary-700 dark:text-primary-400 hover:underline">Sign in</router-link>
+    </p>
   </div>
 </template>
 
 <script setup>
 import { ref } from "vue";
+import BaseAlert from "../components/ui/BaseAlert.vue";
+import BaseButton from "../components/ui/BaseButton.vue";
+import BaseInput from "../components/ui/BaseInput.vue";
 import { register } from "../services/auth.js";
 
 const email = ref("");

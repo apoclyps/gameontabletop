@@ -1,104 +1,110 @@
 <template>
-  <div class="min-h-screen bg-gray-50">
-    <nav class="bg-white shadow-sm px-6 py-3 flex gap-3 items-center text-sm text-gray-500">
-      <router-link to="/dashboard" class="hover:text-gray-800">Dashboard</router-link>
+  <div class="max-w-3xl mx-auto px-4 sm:px-6 py-8">
+    <!-- Breadcrumb -->
+    <nav class="text-sm text-slate-500 dark:text-slate-400 mb-6 flex items-center gap-2">
+      <router-link to="/dashboard" class="hover:text-slate-800 dark:hover:text-slate-200">Dashboard</router-link>
       <span>/</span>
-      <span class="text-gray-800 font-medium">{{ group?.name ?? "Group" }}</span>
+      <span class="text-slate-800 dark:text-slate-200 font-medium">{{ group?.name ?? "Group" }}</span>
     </nav>
 
-    <main class="max-w-3xl mx-auto px-4 py-8">
-      <div v-if="loading" class="text-gray-400 animate-pulse text-center py-12">Loading…</div>
-      <div v-else-if="error" class="text-red-500 text-sm text-center py-12">{{ error }}</div>
-      <template v-else>
-        <!-- Header -->
-        <div class="flex justify-between items-start mb-8">
-          <div>
-            <h1 class="text-2xl font-bold text-gray-800">{{ group.name }}</h1>
-            <p v-if="group.description" class="text-gray-500 mt-1 text-sm">{{ group.description }}</p>
-            <p class="text-xs text-gray-400 mt-1">
-              {{ group.member_count }} {{ group.member_count === 1 ? 'member' : 'members' }} · {{ group.my_role }}
-            </p>
-          </div>
-          <div v-if="isOrganiser" class="flex gap-2">
-            <button @click="showInviteModal = true"
-              class="text-sm border border-gray-300 rounded-lg px-3 py-1.5 hover:bg-gray-50">
-              Invite
-            </button>
-          </div>
-        </div>
+    <div v-if="loading" class="space-y-4">
+      <SkeletonLoader height="h-8" width="w-64" />
+      <SkeletonLoader height="h-4" width="w-48" />
+    </div>
+    <BaseAlert v-else-if="error" variant="error" :message="error" />
 
-        <!-- Invite modal -->
-        <div v-if="showInviteModal" class="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-          <div class="bg-white rounded-xl shadow-xl p-6 max-w-sm w-full mx-4">
-            <h3 class="font-semibold text-gray-800 mb-4">Invite link</h3>
-            <div v-if="inviteLink" class="space-y-3">
-              <p class="text-sm text-gray-600 break-all font-mono bg-gray-50 p-2 rounded">{{ inviteLink }}</p>
-              <button @click="copyInviteLink"
-                class="w-full text-sm border rounded-lg px-3 py-2 hover:bg-gray-50">
-                {{ copied ? "Copied!" : "Copy link" }}
-              </button>
+    <template v-else>
+      <!-- Header -->
+      <div class="flex justify-between items-start mb-8 gap-4">
+        <div>
+          <h1 class="text-2xl font-bold text-slate-900 dark:text-white">{{ group.name }}</h1>
+          <p v-if="group.description" class="text-slate-500 dark:text-slate-400 mt-1 text-sm">{{ group.description }}</p>
+          <p class="text-xs text-slate-400 dark:text-slate-500 mt-1">
+            {{ group.member_count }} {{ group.member_count === 1 ? "member" : "members" }} · {{ group.my_role }}
+          </p>
+        </div>
+        <BaseButton v-if="isOrganiser" @click="showInviteModal = true" variant="secondary" size="sm">
+          <LinkIcon class="w-4 h-4 mr-1.5" />Invite
+        </BaseButton>
+      </div>
+
+      <!-- Invite modal -->
+      <Teleport to="body">
+        <Transition enter-active-class="transition-opacity duration-150" enter-from-class="opacity-0" enter-to-class="opacity-100" leave-active-class="transition-opacity duration-100" leave-from-class="opacity-100" leave-to-class="opacity-0">
+          <div v-if="showInviteModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+            <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-xl p-6 max-w-sm w-full border border-slate-200 dark:border-slate-700">
+              <h3 class="font-semibold text-slate-900 dark:text-white mb-4">Invite link</h3>
+              <div v-if="inviteLink" class="space-y-3">
+                <p class="text-sm text-slate-600 dark:text-slate-300 break-all font-mono bg-slate-50 dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-700">{{ inviteLink }}</p>
+                <BaseButton @click="copyInviteLink" variant="secondary" block>
+                  {{ copied ? "Copied!" : "Copy link" }}
+                </BaseButton>
+              </div>
+              <BaseButton v-else @click="createInvite" :loading="creatingInvite" block>
+                Generate invite link
+              </BaseButton>
+              <BaseButton @click="closeInviteModal" variant="ghost" block class="mt-2">Close</BaseButton>
             </div>
-            <button v-else @click="createInvite" :disabled="creatingInvite"
-              class="w-full bg-blue-600 text-white rounded-lg py-2 text-sm hover:bg-blue-700 disabled:opacity-50">
-              {{ creatingInvite ? "Generating…" : "Generate invite link" }}
-            </button>
-            <button @click="showInviteModal = false; inviteLink = null; copied = false"
-              class="mt-3 w-full text-sm text-gray-500 hover:text-gray-700">Close</button>
           </div>
+        </Transition>
+      </Teleport>
+
+      <!-- Series -->
+      <section class="mb-8">
+        <div class="flex justify-between items-center mb-3">
+          <h2 class="font-semibold text-slate-700 dark:text-slate-300">Series</h2>
+          <BaseButton v-if="isOrganiser" :to="`/groups/${groupId}/series/new`" variant="ghost" size="sm">+ New series</BaseButton>
         </div>
 
-        <!-- Series -->
-        <section class="mb-8">
-          <div class="flex justify-between items-center mb-3">
-            <h2 class="font-semibold text-gray-700">Series</h2>
-            <router-link v-if="isOrganiser" :to="`/groups/${groupId}/series/new`"
-              class="text-sm text-blue-600 hover:underline">+ New series</router-link>
-          </div>
-          <div v-if="series.length === 0" class="text-sm text-gray-400 text-center py-6 bg-white rounded-xl border">
-            No series yet.
-            <span v-if="isOrganiser">
-              <router-link :to="`/groups/${groupId}/series/new`" class="text-blue-600 hover:underline ml-1">Create one</router-link>
+        <div v-if="series.length === 0" class="text-sm text-slate-400 dark:text-slate-500 text-center py-8 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700">
+          No series yet.
+          <router-link v-if="isOrganiser" :to="`/groups/${groupId}/series/new`" class="text-primary-600 hover:underline ml-1">Create one</router-link>
+        </div>
+        <div v-else class="space-y-3">
+          <router-link v-for="s in series" :key="s.id" :to="`/series/${s.id}`"
+            class="flex justify-between items-center bg-white dark:bg-slate-800 rounded-2xl p-4 border border-slate-200 dark:border-slate-700 shadow-card hover:shadow-card-hover transition-all group">
+            <div>
+              <span class="font-medium text-slate-800 dark:text-slate-100 group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">{{ s.title }}</span>
+              <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{{ recurrenceLabel(s) }}</p>
+            </div>
+            <span :class="statusClass(s.status)" class="text-xs px-2 py-0.5 rounded-full capitalize">
+              {{ s.status.replace("_", " ") }}
             </span>
-          </div>
-          <div v-else class="space-y-3">
-            <router-link
-              v-for="s in series"
-              :key="s.id"
-              :to="`/series/${s.id}`"
-              class="block bg-white rounded-xl p-4 border border-gray-100 hover:shadow-sm transition-shadow"
-            >
-              <div class="flex justify-between items-center">
-                <span class="font-medium text-gray-800">{{ s.title }}</span>
-                <span :class="statusClass(s.status)" class="text-xs px-2 py-0.5 rounded-full capitalize">
-                  {{ s.status.replace('_', ' ') }}
-                </span>
-              </div>
-              <p class="text-xs text-gray-500 mt-1">{{ recurrenceLabel(s) }}</p>
-            </router-link>
-          </div>
-        </section>
+          </router-link>
+        </div>
+      </section>
 
-        <!-- Members -->
-        <section class="mb-8">
-          <h2 class="font-semibold text-gray-700 mb-3">Members</h2>
-          <div class="bg-white rounded-xl border divide-y">
-            <div v-for="m in members" :key="m.user_id" class="flex justify-between items-center px-4 py-3">
+      <!-- Members -->
+      <section>
+        <h2 class="font-semibold text-slate-700 dark:text-slate-300 mb-3">Members</h2>
+        <BaseCard padding="none" flush>
+          <div v-for="(m, i) in members" :key="m.user_id"
+            :class="i > 0 ? 'border-t border-slate-100 dark:border-slate-700' : ''"
+            class="flex justify-between items-center px-4 py-3">
+            <div class="flex items-center gap-3">
+              <BaseAvatar :name="m.display_name || m.username" size="sm" />
               <div>
-                <span class="text-sm font-medium text-gray-800">{{ m.display_name || m.username }}</span>
-                <span v-if="m.display_name" class="text-xs text-gray-400 ml-1">@{{ m.username }}</span>
+                <span class="text-sm font-medium text-slate-800 dark:text-slate-100">{{ m.display_name || m.username }}</span>
+                <span v-if="m.display_name" class="text-xs text-slate-400 dark:text-slate-500 ml-1">@{{ m.username }}</span>
               </div>
-              <span class="text-xs text-gray-500 capitalize">{{ m.role }}</span>
             </div>
+            <span class="text-xs text-slate-500 dark:text-slate-400 capitalize">{{ m.role }}</span>
           </div>
-        </section>
-      </template>
-    </main>
+        </BaseCard>
+      </section>
+    </template>
   </div>
 </template>
 
 <script setup>
 import { computed, onMounted, ref } from "vue";
+import { LinkIcon } from "@heroicons/vue/24/outline";
 import { useRoute } from "vue-router";
+import BaseAlert from "../components/ui/BaseAlert.vue";
+import BaseAvatar from "../components/ui/BaseAvatar.vue";
+import BaseButton from "../components/ui/BaseButton.vue";
+import BaseCard from "../components/ui/BaseCard.vue";
+import SkeletonLoader from "../components/ui/SkeletonLoader.vue";
 import { request } from "../services/api.js";
 
 const route = useRoute();
@@ -114,7 +120,7 @@ const inviteLink = ref(null);
 const creatingInvite = ref(false);
 const copied = ref(false);
 
-const isOrganiser = computed(() => group.value?.my_role === "organiser");
+const isOrganiser = computed(() => group.value?.my_role === "organiser" || group.value?.my_role === "owner");
 
 onMounted(async () => {
   try {
@@ -155,25 +161,24 @@ async function copyInviteLink() {
   setTimeout(() => (copied.value = false), 2000);
 }
 
+function closeInviteModal() {
+  showInviteModal.value = false;
+  inviteLink.value = null;
+  copied.value = false;
+}
+
 function statusClass(status) {
   return {
-    active: "bg-green-100 text-green-700",
-    on_hold: "bg-yellow-100 text-yellow-700",
-    cancelled: "bg-red-100 text-red-600",
-    completed: "bg-gray-100 text-gray-500",
-  }[status] ?? "bg-gray-100 text-gray-500";
+    active: "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300",
+    on_hold: "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300",
+    cancelled: "bg-red-100 text-red-600 dark:bg-red-950 dark:text-red-400",
+    completed: "bg-slate-100 text-slate-500 dark:bg-slate-700 dark:text-slate-400",
+  }[status] ?? "bg-slate-100 text-slate-500";
 }
 
 const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 function recurrenceLabel(s) {
   const day = s.default_day_of_week != null ? DAYS[s.default_day_of_week] : "";
-  const labels = {
-    once: "One-time event",
-    weekly: `Every ${day}`,
-    biweekly: `Every other ${day}`,
-    monthly: `Monthly`,
-    custom: "Custom schedule",
-  };
-  return labels[s.recurrence] ?? s.recurrence;
+  return { once: "One-time event", weekly: `Every ${day}`, biweekly: `Every other ${day}`, monthly: "Monthly", custom: "Custom schedule" }[s.recurrence] ?? s.recurrence;
 }
 </script>

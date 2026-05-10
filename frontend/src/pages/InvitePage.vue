@@ -1,54 +1,56 @@
 <template>
-  <div class="min-h-screen bg-gray-50 flex items-center justify-center">
-    <div class="bg-white rounded-xl shadow-md p-10 max-w-md w-full text-center">
-      <div v-if="loading" class="text-gray-400 animate-pulse">Loading…</div>
+  <div class="text-center">
+    <div v-if="loading" class="space-y-3">
+      <SkeletonLoader height="h-6" width="w-48" class="mx-auto" />
+      <SkeletonLoader height="h-4" width="w-64" class="mx-auto" />
+    </div>
 
-      <div v-else-if="error" class="text-red-500">
-        <p class="mb-4">{{ error }}</p>
-        <router-link to="/dashboard" class="text-blue-600 hover:underline">Go to dashboard</router-link>
+    <BaseAlert v-else-if="error" variant="error" :message="error" class="text-left" />
+    <div v-if="error" class="mt-4">
+      <router-link to="/dashboard" class="text-primary-600 hover:underline text-sm">Go to dashboard</router-link>
+    </div>
+
+    <template v-else-if="preview">
+      <div class="mb-1 flex justify-center">
+        <div class="w-12 h-12 rounded-2xl bg-primary-100 dark:bg-primary-950 flex items-center justify-center">
+          <UserGroupIcon class="w-6 h-6 text-primary-600 dark:text-primary-400" />
+        </div>
+      </div>
+      <h1 class="text-2xl font-bold text-slate-900 dark:text-white mt-4 mb-1">You're invited!</h1>
+      <p class="text-sm text-slate-500 dark:text-slate-400 mb-5">
+        <strong class="text-slate-700 dark:text-slate-300">{{ preview.inviter_username }}</strong> has invited you to join
+      </p>
+
+      <div class="bg-slate-50 dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 p-4 mb-5 text-left">
+        <p class="font-semibold text-slate-900 dark:text-white text-lg">{{ preview.group_name }}</p>
+        <p v-if="preview.group_description" class="text-sm text-slate-500 dark:text-slate-400 mt-1">{{ preview.group_description }}</p>
+        <p class="text-xs text-slate-400 dark:text-slate-500 mt-2 capitalize">Role: {{ preview.role }}</p>
       </div>
 
-      <template v-else-if="preview">
-        <h1 class="text-2xl font-bold text-gray-800 mb-2">You're invited!</h1>
-        <p class="text-gray-500 text-sm mb-6">
-          <strong>{{ preview.inviter_username }}</strong> has invited you to join
-        </p>
-        <div class="bg-gray-50 rounded-xl p-4 mb-6 text-left">
-          <p class="font-semibold text-gray-800 text-lg">{{ preview.group_name }}</p>
-          <p v-if="preview.group_description" class="text-sm text-gray-500 mt-1">{{ preview.group_description }}</p>
-          <p class="text-xs text-gray-400 mt-2 capitalize">Role: {{ preview.role }}</p>
-        </div>
-
-        <div v-if="joined" class="text-green-600">
-          <p class="mb-4 font-medium">You've joined the group!</p>
-          <router-link :to="`/groups/${preview.group_id}`" class="text-blue-600 hover:underline">View group</router-link>
-        </div>
-        <template v-else-if="authed">
-          <button @click="accept" :disabled="accepting"
-            class="w-full bg-blue-600 text-white rounded-lg py-2 text-sm font-medium hover:bg-blue-700 disabled:opacity-50 mb-3">
-            {{ accepting ? "Joining…" : "Join group" }}
-          </button>
-          <p v-if="acceptError" class="text-red-500 text-sm">{{ acceptError }}</p>
-        </template>
-        <template v-else>
-          <p class="text-sm text-gray-500 mb-4">Sign in to join this group.</p>
-          <router-link :to="`/login?next=/invites/${token}`"
-            class="block w-full bg-blue-600 text-white rounded-lg py-2 text-sm font-medium hover:bg-blue-700 mb-2">
-            Sign in
-          </router-link>
-          <router-link :to="`/register?next=/invites/${token}`"
-            class="block w-full border rounded-lg py-2 text-sm text-gray-700 hover:bg-gray-50">
-            Create account
-          </router-link>
-        </template>
+      <div v-if="joined">
+        <BaseAlert variant="success" message="You've joined the group!" class="mb-4 text-left" />
+        <BaseButton :to="`/groups/${preview.group_id}`" block>View group</BaseButton>
+      </div>
+      <template v-else-if="authed">
+        <BaseButton @click="accept" :loading="accepting" block>Join group</BaseButton>
+        <BaseAlert v-if="acceptError" variant="error" :message="acceptError" class="mt-3 text-left" />
       </template>
-    </div>
+      <template v-else>
+        <p class="text-sm text-slate-500 dark:text-slate-400 mb-4">Sign in to join this group.</p>
+        <BaseButton :to="`/login?next=/invites/${token}`" block class="mb-2">Sign in</BaseButton>
+        <BaseButton :to="`/register?next=/invites/${token}`" variant="secondary" block>Create account</BaseButton>
+      </template>
+    </template>
   </div>
 </template>
 
 <script setup>
 import { onMounted, ref } from "vue";
 import { useRoute } from "vue-router";
+import { UserGroupIcon } from "@heroicons/vue/24/outline";
+import BaseAlert from "../components/ui/BaseAlert.vue";
+import BaseButton from "../components/ui/BaseButton.vue";
+import SkeletonLoader from "../components/ui/SkeletonLoader.vue";
 import { isAuthenticated } from "../services/auth.js";
 import { request } from "../services/api.js";
 

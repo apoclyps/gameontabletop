@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 40" fill="none">
+  <!-- Dice icon -->
+  <rect x="2" y="6" width="28" height="28" rx="5" fill="#0d9488"/>
+  <circle cx="10" cy="14" r="2.5" fill="white"/>
+  <circle cx="22" cy="14" r="2.5" fill="white"/>
+  <circle cx="10" cy="26" r="2.5" fill="white"/>
+  <circle cx="22" cy="26" r="2.5" fill="white"/>
+  <circle cx="16" cy="20" r="2.5" fill="white"/>
+  <!-- Wordmark -->
+  <text x="38" y="27" font-family="Inter, sans-serif" font-weight="700" font-size="16" fill="currentColor">Game On Tabletop</text>
+</svg>

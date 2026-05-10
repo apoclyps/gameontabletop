@@ -6,63 +6,72 @@ const routes = [
   {
     path: "/login",
     component: () => import("../pages/LoginPage.vue"),
-    meta: { guestOnly: true },
+    meta: { layout: "auth", guestOnly: true, title: "Sign in" },
   },
   {
     path: "/register",
     component: () => import("../pages/RegisterPage.vue"),
-    meta: { guestOnly: true },
+    meta: { layout: "auth", guestOnly: true, title: "Create account" },
   },
   {
     path: "/forgot-password",
     component: () => import("../pages/ForgotPasswordPage.vue"),
+    meta: { layout: "auth", title: "Forgot password" },
   },
   {
     path: "/reset-password",
     component: () => import("../pages/ResetPasswordPage.vue"),
+    meta: { layout: "auth", title: "Reset password" },
   },
   {
     path: "/verify-email",
     component: () => import("../pages/VerifyEmailPage.vue"),
+    meta: { layout: "auth", title: "Verify email" },
   },
   {
     path: "/profile",
     component: () => import("../pages/ProfilePage.vue"),
-    meta: { requiresAuth: true },
+    meta: { layout: "app", requiresAuth: true, title: "Profile" },
   },
   {
     path: "/dashboard",
     component: () => import("../pages/DashboardPage.vue"),
-    meta: { requiresAuth: true },
+    meta: { layout: "app", requiresAuth: true, title: "Dashboard" },
   },
   {
     path: "/groups/new",
     component: () => import("../pages/GroupNewPage.vue"),
-    meta: { requiresAuth: true },
+    meta: { layout: "app", requiresAuth: true, title: "New group" },
   },
   {
     path: "/groups/:id",
     component: () => import("../pages/GroupPage.vue"),
-    meta: { requiresAuth: true },
+    meta: { layout: "app", requiresAuth: true, title: "Group" },
   },
   {
     path: "/groups/:id/series/new",
     component: () => import("../pages/SeriesNewPage.vue"),
-    meta: { requiresAuth: true },
+    meta: { layout: "app", requiresAuth: true, title: "New series" },
   },
   {
     path: "/series/:id",
     component: () => import("../pages/SeriesPage.vue"),
-    meta: { requiresAuth: true },
+    meta: { layout: "app", requiresAuth: true, title: "Series" },
   },
   {
     path: "/occurrences/:id",
     component: () => import("../pages/OccurrencePage.vue"),
-    meta: { requiresAuth: true },
+    meta: { layout: "app", requiresAuth: true, title: "Night" },
   },
   {
     path: "/invites/:token",
     component: () => import("../pages/InvitePage.vue"),
+    meta: { layout: "auth", title: "Join group" },
+  },
+  {
+    path: "/:pathMatch(.*)*",
+    component: () => import("../pages/NotFoundPage.vue"),
+    meta: { layout: "auth", title: "Page not found" },
   },
 ];
 
@@ -73,8 +82,13 @@ const router = createRouter({
 
 router.beforeEach((to) => {
   const authed = isAuthenticated();
-  if (to.meta.requiresAuth && !authed) return "/login";
+  if (to.meta.requiresAuth && !authed) return `/login?next=${encodeURIComponent(to.fullPath)}`;
   if (to.meta.guestOnly && authed) return "/dashboard";
+});
+
+router.afterEach((to) => {
+  const title = to.meta.title ? `${to.meta.title} — Game On Tabletop` : "Game On Tabletop";
+  document.title = title;
 });
 
 export default router;

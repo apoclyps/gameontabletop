@@ -1,28 +1,23 @@
 <template>
-  <div class="min-h-screen bg-gray-50 flex items-center justify-center">
-    <div class="bg-white rounded-xl shadow-md p-10 max-w-lg w-full">
-      <div class="flex items-center gap-3 mb-6">
-        <router-link :to="`/groups/${groupId}`" class="text-gray-400 hover:text-gray-600">← Back</router-link>
-        <h1 class="text-2xl font-bold text-gray-800">New series</h1>
-      </div>
+  <div class="max-w-lg mx-auto px-4 sm:px-6 py-8">
+    <div class="flex items-center gap-3 mb-6">
+      <router-link :to="`/groups/${groupId}`" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 rounded-lg p-0.5">
+        <ArrowLeftIcon class="w-5 h-5" />
+      </router-link>
+      <h1 class="text-2xl font-bold text-slate-900 dark:text-white">New series</h1>
+    </div>
 
+    <BaseCard>
       <form @submit.prevent="submit" class="space-y-4">
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Title <span class="text-red-500">*</span></label>
-          <input v-model="form.title" type="text" required maxlength="200"
-            class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-        </div>
+        <BaseInput v-model="form.title" label="Title" required maxlength="200" placeholder="Friday Night Board Games" />
+        <BaseInput v-model="form.description" label="Description" type="textarea" :rows="2" />
 
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
-          <textarea v-model="form.description" rows="2"
-            class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-        </div>
-
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Recurrence <span class="text-red-500">*</span></label>
+          <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+            Recurrence <span class="text-red-500">*</span>
+          </label>
           <select v-model="form.recurrence" required
-            class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+            class="w-full border border-slate-300 dark:border-slate-600 rounded-xl px-3 py-2 text-sm text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-primary-500">
             <option value="once">One-time event</option>
             <option value="weekly">Weekly</option>
             <option value="biweekly">Every two weeks</option>
@@ -31,46 +26,37 @@
         </div>
 
         <div v-if="form.recurrence !== 'once'">
-          <label class="block text-sm font-medium text-gray-700 mb-1">Day of week</label>
+          <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Day of week</label>
           <select v-model.number="form.default_day_of_week"
-            class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+            class="w-full border border-slate-300 dark:border-slate-600 rounded-xl px-3 py-2 text-sm text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-primary-500">
             <option :value="null">— not specified —</option>
             <option v-for="(d, i) in DAYS" :key="i" :value="i">{{ d }}</option>
           </select>
         </div>
 
         <div class="grid grid-cols-2 gap-3">
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Start date</label>
-            <input v-model="form.series_start_date" type="date"
-              class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Start time</label>
-            <input v-model="form.default_start_time" type="time"
-              class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-          </div>
+          <BaseInput v-model="form.series_start_date" label="Start date" type="date" />
+          <BaseInput v-model="form.default_start_time" label="Start time" type="time" />
         </div>
 
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Duration (minutes)</label>
-          <input v-model.number="form.default_duration_minutes" type="number" min="15" max="720"
-            class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-        </div>
+        <BaseInput v-model.number="form.default_duration_minutes" label="Duration (minutes)" type="number" hint="Leave blank for open-ended" />
 
-        <p v-if="error" class="text-red-500 text-sm">{{ error }}</p>
-        <button type="submit" :disabled="loading"
-          class="w-full bg-blue-600 text-white rounded-lg py-2 text-sm font-medium hover:bg-blue-700 disabled:opacity-50">
-          {{ loading ? "Creating…" : "Create series" }}
-        </button>
+        <BaseAlert v-if="error" variant="error" :message="error" />
+
+        <BaseButton type="submit" :loading="loading" block>Create series</BaseButton>
       </form>
-    </div>
+    </BaseCard>
   </div>
 </template>
 
 <script setup>
 import { reactive, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
+import { ArrowLeftIcon } from "@heroicons/vue/24/outline";
+import BaseAlert from "../components/ui/BaseAlert.vue";
+import BaseButton from "../components/ui/BaseButton.vue";
+import BaseCard from "../components/ui/BaseCard.vue";
+import BaseInput from "../components/ui/BaseInput.vue";
 import { request } from "../services/api.js";
 
 const route = useRoute();

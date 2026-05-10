@@ -1,32 +1,30 @@
 <template>
-  <div class="min-h-screen bg-gray-50 flex items-center justify-center">
-    <div class="bg-white rounded-xl shadow-md p-10 max-w-md w-full">
-      <h1 class="text-2xl font-bold text-gray-800 mb-6 text-center">Reset password</h1>
-      <div v-if="!token" class="text-red-500 text-sm text-center">
-        Invalid reset link. Please request a new one.
-      </div>
-      <div v-else-if="success" class="text-green-600 text-sm text-center">
-        Password reset! <router-link to="/login" class="underline">Sign in</router-link>
-      </div>
-      <form v-else @submit.prevent="submit" class="space-y-4">
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">New password</label>
-          <input v-model="password" type="password" required autocomplete="new-password"
-            class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-        </div>
-        <p v-if="error" class="text-red-500 text-sm">{{ error }}</p>
-        <button type="submit" :disabled="loading"
-          class="w-full bg-blue-600 text-white rounded-lg py-2 text-sm font-medium hover:bg-blue-700 disabled:opacity-50">
-          {{ loading ? "Resetting…" : "Reset password" }}
-        </button>
-      </form>
+  <div>
+    <h1 class="text-2xl font-bold text-slate-900 dark:text-white mb-6">Reset password</h1>
+
+    <BaseAlert v-if="!token" variant="error" message="Invalid reset link. Please request a new one." />
+
+    <BaseAlert v-else-if="success" variant="success" message="Password reset successfully!" />
+    <div v-if="success" class="mt-4 text-center">
+      <router-link to="/login" class="text-primary-600 hover:underline text-sm">Sign in with your new password</router-link>
     </div>
+
+    <form v-else-if="token" @submit.prevent="submit" class="space-y-4">
+      <BaseInput v-model="password" label="New password" type="password" required autocomplete="new-password" />
+
+      <BaseAlert v-if="error" variant="error" :message="error" />
+
+      <BaseButton type="submit" :loading="loading" block>Reset password</BaseButton>
+    </form>
   </div>
 </template>
 
 <script setup>
 import { ref } from "vue";
 import { useRoute } from "vue-router";
+import BaseAlert from "../components/ui/BaseAlert.vue";
+import BaseButton from "../components/ui/BaseButton.vue";
+import BaseInput from "../components/ui/BaseInput.vue";
 import { resetPassword } from "../services/auth.js";
 
 const route = useRoute();

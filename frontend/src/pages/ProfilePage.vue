@@ -1,61 +1,66 @@
 <template>
-  <div class="min-h-screen bg-gray-50 flex items-center justify-center">
-    <div class="bg-white rounded-xl shadow-md p-10 max-w-md w-full">
-      <div class="flex justify-between items-center mb-6">
-        <h1 class="text-2xl font-bold text-gray-800">Profile</h1>
-        <button @click="handleLogout" class="text-sm text-gray-500 hover:text-red-500">Sign out</button>
-      </div>
+  <div class="max-w-3xl mx-auto px-4 sm:px-6 py-8">
+    <h1 class="text-2xl font-bold text-slate-900 dark:text-white mb-6">Profile</h1>
 
-      <div v-if="loading" class="text-gray-400 animate-pulse text-center">Loading…</div>
-      <div v-else-if="fetchError" class="text-red-500 text-sm text-center">{{ fetchError }}</div>
-      <template v-else>
-        <div class="mb-6 text-sm text-gray-600 space-y-1">
-          <p><span class="font-medium">Email:</span> {{ user.email }}</p>
-          <p><span class="font-medium">Username:</span> {{ user.username }}</p>
-          <p><span class="font-medium">Member since:</span> {{ new Date(user.created_at).toLocaleDateString() }}</p>
-        </div>
-
-        <form @submit.prevent="save" class="space-y-4">
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Display name</label>
-            <input v-model="form.display_name" type="text"
-              class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Bio</label>
-            <textarea v-model="form.bio" rows="3"
-              class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Avatar URL</label>
-            <input v-model="form.avatar_url" type="url"
-              class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-          </div>
-          <p v-if="saveError" class="text-red-500 text-sm">{{ saveError }}</p>
-          <p v-if="saved" class="text-green-600 text-sm">Saved!</p>
-          <button type="submit" :disabled="saving"
-            class="w-full bg-blue-600 text-white rounded-lg py-2 text-sm font-medium hover:bg-blue-700 disabled:opacity-50">
-            {{ saving ? "Saving…" : "Save changes" }}
-          </button>
-        </form>
-      </template>
+    <div v-if="loading" class="space-y-4">
+      <SkeletonLoader height="h-5" width="w-48" />
+      <SkeletonLoader height="h-4" width="w-64" />
+      <SkeletonLoader height="h-10" />
+      <SkeletonLoader height="h-10" />
     </div>
+
+    <BaseAlert v-else-if="fetchError" variant="error" :message="fetchError" />
+
+    <template v-else>
+      <!-- Info -->
+      <BaseCard class="mb-6">
+        <div class="flex items-start gap-5">
+          <BaseAvatar :src="user.avatar_url" :name="user.display_name || user.username" size="xl" />
+          <div class="flex-1 min-w-0">
+            <p class="font-semibold text-slate-900 dark:text-white text-lg">{{ user.display_name || user.username }}</p>
+            <p class="text-sm text-slate-500 dark:text-slate-400">@{{ user.username }}</p>
+            <p class="text-xs text-slate-400 dark:text-slate-500 mt-1">{{ user.email }}</p>
+            <p class="text-xs text-slate-400 dark:text-slate-500">
+              Member since {{ new Date(user.created_at).toLocaleDateString() }}
+            </p>
+          </div>
+        </div>
+      </BaseCard>
+
+      <!-- Edit form -->
+      <BaseCard>
+        <h2 class="text-base font-semibold text-slate-900 dark:text-white mb-5">Edit profile</h2>
+        <form @submit.prevent="save" class="space-y-4">
+          <BaseInput v-model="form.display_name" label="Display name" />
+          <BaseInput v-model="form.bio" label="Bio" type="textarea" :rows="3" />
+          <BaseInput v-model="form.avatar_url" label="Avatar URL" type="url" />
+
+          <div class="flex items-center gap-3 pt-2">
+            <BaseButton type="submit" :loading="saving">Save changes</BaseButton>
+          </div>
+        </form>
+      </BaseCard>
+    </template>
   </div>
 </template>
 
 <script setup>
 import { onMounted, reactive, ref } from "vue";
-import { useRouter } from "vue-router";
+import BaseAlert from "../components/ui/BaseAlert.vue";
+import BaseAvatar from "../components/ui/BaseAvatar.vue";
+import BaseButton from "../components/ui/BaseButton.vue";
+import BaseCard from "../components/ui/BaseCard.vue";
+import BaseInput from "../components/ui/BaseInput.vue";
+import SkeletonLoader from "../components/ui/SkeletonLoader.vue";
+import { useToast } from "../composables/useToast.js";
 import { request } from "../services/api.js";
-import { logout } from "../services/auth.js";
 
-const router = useRouter();
+const { success: toastSuccess, error: toastError } = useToast();
+
 const user = ref(null);
 const loading = ref(true);
 const fetchError = ref(null);
 const saving = ref(false);
-const saveError = ref(null);
-const saved = ref(false);
 const form = reactive({ display_name: "", bio: "", avatar_url: "" });
 
 onMounted(async () => {
@@ -74,8 +79,6 @@ onMounted(async () => {
 });
 
 async function save() {
-  saveError.value = null;
-  saved.value = false;
   saving.value = true;
   try {
     const res = await request("/api/users/me", {
@@ -84,17 +87,11 @@ async function save() {
     });
     if (!res.ok) throw new Error("Save failed");
     user.value = await res.json();
-    saved.value = true;
-    setTimeout(() => (saved.value = false), 3000);
+    toastSuccess("Profile saved!");
   } catch (err) {
-    saveError.value = err.message;
+    toastError(err.message);
   } finally {
     saving.value = false;
   }
-}
-
-async function handleLogout() {
-  await logout();
-  router.push("/login");
 }
 </script>

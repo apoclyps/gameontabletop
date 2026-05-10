@@ -1,41 +1,41 @@
 <template>
-  <div class="min-h-screen bg-gray-50 flex items-center justify-center">
-    <div class="bg-white rounded-xl shadow-md p-10 max-w-md w-full">
-      <h1 class="text-2xl font-bold text-gray-800 mb-6 text-center">Sign in</h1>
-      <form @submit.prevent="submit" class="space-y-4">
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
-          <input v-model="email" type="email" required autocomplete="email"
-            class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Password</label>
-          <input v-model="password" type="password" required autocomplete="current-password"
-            class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-        </div>
-        <p v-if="error" class="text-red-500 text-sm">{{ error }}</p>
-        <button type="submit" :disabled="loading"
-          class="w-full bg-blue-600 text-white rounded-lg py-2 text-sm font-medium hover:bg-blue-700 disabled:opacity-50">
-          {{ loading ? "Signing in…" : "Sign in" }}
-        </button>
-      </form>
-      <div class="mt-4 text-center text-sm text-gray-500 space-y-1">
-        <p><router-link to="/forgot-password" class="text-blue-600 hover:underline">Forgot password?</router-link></p>
-        <p>No account? <router-link to="/register" class="text-blue-600 hover:underline">Register</router-link></p>
-      </div>
+  <div>
+    <h1 class="text-2xl font-bold text-slate-900 dark:text-white mb-1">Welcome back</h1>
+    <p class="text-sm text-slate-500 dark:text-slate-400 mb-6">Sign in to your account</p>
+
+    <form @submit.prevent="submit" class="space-y-4">
+      <BaseInput v-model="email" label="Email" type="email" required autocomplete="email" :error="fieldErrors.email" />
+      <BaseInput v-model="password" label="Password" type="password" required autocomplete="current-password" :error="fieldErrors.password" />
+
+      <BaseAlert v-if="error" variant="error" :message="error" />
+
+      <BaseButton type="submit" :loading="loading" block>Sign in</BaseButton>
+    </form>
+
+    <div class="mt-5 flex flex-col gap-2 text-center text-sm text-slate-500">
+      <router-link to="/forgot-password" class="text-primary-600 hover:text-primary-700 dark:text-primary-400 hover:underline">
+        Forgot password?
+      </router-link>
+      <span>No account? <router-link to="/register" class="text-primary-600 hover:text-primary-700 dark:text-primary-400 hover:underline">Create one</router-link></span>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref } from "vue";
-import { useRouter } from "vue-router";
+import { reactive, ref } from "vue";
+import { useRoute, useRouter } from "vue-router";
+import BaseAlert from "../components/ui/BaseAlert.vue";
+import BaseButton from "../components/ui/BaseButton.vue";
+import BaseInput from "../components/ui/BaseInput.vue";
 import { login } from "../services/auth.js";
 
 const router = useRouter();
+const route = useRoute();
+
 const email = ref("");
 const password = ref("");
 const error = ref(null);
+const fieldErrors = reactive({});
 const loading = ref(false);
 
 async function submit() {
@@ -43,7 +43,8 @@ async function submit() {
   loading.value = true;
   try {
     await login(email.value, password.value);
-    router.push("/profile");
+    const next = route.query.next || "/dashboard";
+    router.push(next);
   } catch (err) {
     error.value = err.message;
   } finally {

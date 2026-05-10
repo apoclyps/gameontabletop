@@ -1,40 +1,38 @@
 <template>
-  <div class="min-h-screen bg-gray-50 flex items-center justify-center">
-    <div class="bg-white rounded-xl shadow-md p-10 max-w-md w-full">
-      <div class="flex items-center gap-3 mb-6">
-        <router-link to="/dashboard" class="text-gray-400 hover:text-gray-600">← Back</router-link>
-        <h1 class="text-2xl font-bold text-gray-800">New group</h1>
-      </div>
-
-      <form @submit.prevent="submit" class="space-y-4">
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Group name <span class="text-red-500">*</span></label>
-          <input v-model="form.name" type="text" required maxlength="100"
-            class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
-          <textarea v-model="form.description" rows="3"
-            class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            placeholder="What kind of games do you play?" />
-        </div>
-        <div class="flex items-center gap-2">
-          <input v-model="form.is_public" type="checkbox" id="is_public" class="rounded" />
-          <label for="is_public" class="text-sm text-gray-700">Public group (discoverable)</label>
-        </div>
-        <p v-if="error" class="text-red-500 text-sm">{{ error }}</p>
-        <button type="submit" :disabled="loading"
-          class="w-full bg-blue-600 text-white rounded-lg py-2 text-sm font-medium hover:bg-blue-700 disabled:opacity-50">
-          {{ loading ? "Creating…" : "Create group" }}
-        </button>
-      </form>
+  <div class="max-w-lg mx-auto px-4 sm:px-6 py-8">
+    <div class="flex items-center gap-3 mb-6">
+      <router-link to="/dashboard" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 rounded-lg p-0.5">
+        <ArrowLeftIcon class="w-5 h-5" />
+      </router-link>
+      <h1 class="text-2xl font-bold text-slate-900 dark:text-white">New group</h1>
     </div>
+
+    <BaseCard>
+      <form @submit.prevent="submit" class="space-y-4">
+        <BaseInput v-model="form.name" label="Group name" required maxlength="100" placeholder="Friday Night Gamers" />
+        <BaseInput v-model="form.description" label="Description" type="textarea" :rows="3" placeholder="What kind of games do you play?" />
+        <label class="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300 cursor-pointer select-none">
+          <input v-model="form.is_public" type="checkbox"
+            class="w-4 h-4 rounded border-slate-300 text-primary-600 focus:ring-primary-500 dark:border-slate-600 dark:bg-slate-700" />
+          Public group (discoverable by anyone)
+        </label>
+
+        <BaseAlert v-if="error" variant="error" :message="error" />
+
+        <BaseButton type="submit" :loading="loading" block>Create group</BaseButton>
+      </form>
+    </BaseCard>
   </div>
 </template>
 
 <script setup>
 import { reactive, ref } from "vue";
 import { useRouter } from "vue-router";
+import { ArrowLeftIcon } from "@heroicons/vue/24/outline";
+import BaseAlert from "../components/ui/BaseAlert.vue";
+import BaseButton from "../components/ui/BaseButton.vue";
+import BaseCard from "../components/ui/BaseCard.vue";
+import BaseInput from "../components/ui/BaseInput.vue";
 import { request } from "../services/api.js";
 
 const router = useRouter();
