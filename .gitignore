@@ -46,3 +46,4 @@ guides/
 scripts/
 secrets
 *.agents/
+.vercel
