@@ -58,11 +58,11 @@
         <BaseAlert v-if="addOccError" variant="error" :message="addOccError" class="mt-2" />
       </BaseCard>
 
-      <div v-if="occurrences.length === 0" class="text-sm text-slate-400 dark:text-slate-500 text-center py-10 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700">
+      <div v-if="upcomingOccurrences.length === 0" class="text-sm text-slate-400 dark:text-slate-500 text-center py-10 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700">
         No upcoming nights scheduled.
       </div>
       <div v-else class="space-y-3">
-        <router-link v-for="occ in occurrences" :key="occ.id" :to="`/occurrences/${occ.id}`"
+        <router-link v-for="occ in upcomingOccurrences" :key="occ.id" :to="`/occurrences/${occ.id}`"
           class="flex justify-between items-center bg-white dark:bg-slate-800 rounded-2xl p-4 border border-slate-200 dark:border-slate-700 shadow-card hover:shadow-card-hover transition-all group">
           <div>
             <p class="font-medium text-slate-800 dark:text-slate-100 group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">
@@ -72,6 +72,10 @@
           </div>
           <span :class="occStatusClass(occ.status)" class="text-xs px-2 py-0.5 rounded-full capitalize">{{ occ.status }}</span>
         </router-link>
+        <button v-if="hiddenCount > 0 && !showAllOccurrences" @click="showAllOccurrences = true"
+          class="w-full text-sm text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 py-2 text-center font-medium">
+          Show {{ hiddenCount }} more upcoming night{{ hiddenCount !== 1 ? "s" : "" }}
+        </button>
       </div>
 
       <!-- Availability polls -->
@@ -124,6 +128,18 @@ const seriesId = route.params.id;
 const series = ref(null);
 const occurrences = ref([]);
 const polls = ref([]);
+const showAllOccurrences = ref(false);
+
+const upcomingOccurrences = computed(() => {
+  const today = new Date().toISOString().slice(0, 10);
+  const upcoming = occurrences.value.filter((o) => o.occurrence_date >= today && o.status !== "cancelled");
+  return showAllOccurrences.value ? upcoming : upcoming.slice(0, 5);
+});
+const hiddenCount = computed(() => {
+  const today = new Date().toISOString().slice(0, 10);
+  const upcoming = occurrences.value.filter((o) => o.occurrence_date >= today && o.status !== "cancelled");
+  return Math.max(0, upcoming.length - 5);
+});
 const loading = ref(true);
 const error = ref(null);
 const isOrganiser = ref(false);
