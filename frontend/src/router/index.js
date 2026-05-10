@@ -124,6 +124,11 @@ const routes = [
     meta: { layout: "auth", title: "Join group" },
   },
   {
+    path: "/friend-invite/:token",
+    component: () => import("../pages/FriendInvitePage.vue"),
+    meta: { layout: "auth", title: "Friend invite" },
+  },
+  {
     path: "/:pathMatch(.*)*",
     component: () => import("../pages/NotFoundPage.vue"),
     meta: { layout: "auth", title: "Page not found" },

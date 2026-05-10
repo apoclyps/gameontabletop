@@ -8,7 +8,7 @@
     </div>
 
     <!-- Add friend -->
-    <BaseCard class="mb-6">
+    <BaseCard class="mb-4">
       <h2 class="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3">Add a friend</h2>
       <form @submit.prevent="sendRequest" class="flex gap-2">
         <BaseInput v-model="searchUsername" placeholder="Enter username" class="flex-1" />
@@ -16,6 +16,19 @@
       </form>
       <BaseAlert v-if="requestError" variant="error" :message="requestError" class="mt-2" />
       <BaseAlert v-if="requestSent" variant="success" message="Friend request sent!" class="mt-2" />
+    </BaseCard>
+
+    <!-- Invite link -->
+    <BaseCard class="mb-6">
+      <h2 class="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">Invite a friend</h2>
+      <p class="text-xs text-slate-500 dark:text-slate-400 mb-3">Share this link — anyone who opens it can add you as a friend.</p>
+      <div v-if="inviteUrl" class="flex gap-2">
+        <BaseInput :modelValue="inviteUrl" readonly class="flex-1" />
+        <BaseButton @click="copyInvite" variant="secondary" size="sm">{{ copied ? 'Copied!' : 'Copy' }}</BaseButton>
+      </div>
+      <BaseButton v-else @click="generateInvite" :loading="generatingInvite" variant="secondary" size="sm">
+        <LinkIcon class="w-4 h-4 mr-1.5" /> Generate invite link
+      </BaseButton>
     </BaseCard>
 
     <!-- Pending incoming requests -->
@@ -95,7 +108,7 @@
 
 <script setup>
 import { onMounted, ref } from "vue";
-import { PuzzlePieceIcon, UserGroupIcon } from "@heroicons/vue/24/outline";
+import { LinkIcon, PuzzlePieceIcon, UserGroupIcon } from "@heroicons/vue/24/outline";
 import BaseAlert from "../components/ui/BaseAlert.vue";
 import BaseAvatar from "../components/ui/BaseAvatar.vue";
 import BaseButton from "../components/ui/BaseButton.vue";
@@ -116,6 +129,9 @@ const searchUsername = ref("");
 const sending = ref(false);
 const requestError = ref(null);
 const requestSent = ref(false);
+const inviteUrl = ref(null);
+const generatingInvite = ref(false);
+const copied = ref(false);
 
 onMounted(async () => {
   try {
@@ -177,6 +193,30 @@ async function respond(friendshipId, status) {
     }
   } else {
     toastError("Failed to respond to request.");
+  }
+}
+
+async function generateInvite() {
+  generatingInvite.value = true;
+  try {
+    const res = await request("/api/friends/invite", { method: "POST" });
+    if (!res.ok) throw new Error("Failed to generate invite");
+    const data = await res.json();
+    inviteUrl.value = data.url;
+  } catch (err) {
+    toastError(err.message);
+  } finally {
+    generatingInvite.value = false;
+  }
+}
+
+async function copyInvite() {
+  try {
+    await navigator.clipboard.writeText(inviteUrl.value);
+    copied.value = true;
+    setTimeout(() => (copied.value = false), 2000);
+  } catch {
+    toastError("Failed to copy to clipboard");
   }
 }
 
