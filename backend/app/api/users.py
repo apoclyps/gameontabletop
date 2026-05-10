@@ -56,7 +56,7 @@ async def upload_avatar(
     if len(data) > _MAX_BYTES:
         raise HTTPException(status_code=400, detail="File exceeds 2 MB limit")
 
-    if not settings.supabase_url or not settings.supabase_service_role_key:
+    if not settings.supabase_url or not settings.supabase_anon_key:
         raise HTTPException(status_code=502, detail="Storage not configured")
 
     object_path = f"avatars/{current_user.id}"
@@ -67,7 +67,7 @@ async def upload_avatar(
             upload_url,
             content=data,
             headers={
-                "Authorization": f"Bearer {settings.supabase_service_role_key}",
+                "Authorization": f"Bearer {settings.supabase_anon_key}",
                 "Content-Type": content_type,
                 "x-upsert": "true",
             },
