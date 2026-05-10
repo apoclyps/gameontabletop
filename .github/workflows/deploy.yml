@@ -32,7 +32,7 @@ jobs:
 
       - name: Install backend dependencies
         working-directory: backend
-        run: uv pip install --system -r requirements.txt
+        run: uv sync --frozen --no-dev
 
       - name: Run migrations
         working-directory: backend
