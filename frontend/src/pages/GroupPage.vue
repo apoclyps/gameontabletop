@@ -49,15 +49,15 @@
         </Transition>
       </Teleport>
 
-      <!-- Series -->
+      <!-- Game Nights -->
       <section class="mb-8">
         <div class="flex justify-between items-center mb-3">
-          <h2 class="font-semibold text-slate-700 dark:text-slate-300">Series</h2>
-          <BaseButton v-if="isOrganiser" :to="`/groups/${groupId}/series/new`" variant="ghost" size="sm">+ New series</BaseButton>
+          <h2 class="font-semibold text-slate-700 dark:text-slate-300">Game Nights</h2>
+          <BaseButton v-if="isOrganiser" :to="`/groups/${groupId}/series/new`" variant="ghost" size="sm">+ New game night</BaseButton>
         </div>
 
         <div v-if="series.length === 0" class="text-sm text-slate-400 dark:text-slate-500 text-center py-8 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700">
-          No series yet.
+          No game nights yet.
           <router-link v-if="isOrganiser" :to="`/groups/${groupId}/series/new`" class="text-primary-600 hover:underline ml-1">Create one</router-link>
         </div>
         <div v-else class="space-y-3">

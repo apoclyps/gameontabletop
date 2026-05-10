@@ -4,7 +4,7 @@
       <router-link :to="`/groups/${groupId}`" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 rounded-lg p-0.5">
         <ArrowLeftIcon class="w-5 h-5" />
       </router-link>
-      <h1 class="text-2xl font-bold text-slate-900 dark:text-white">New series</h1>
+      <h1 class="text-2xl font-bold text-slate-900 dark:text-white">New game night</h1>
     </div>
 
     <BaseCard>
@@ -43,7 +43,7 @@
 
         <BaseAlert v-if="error" variant="error" :message="error" />
 
-        <BaseButton type="submit" :loading="loading" block>Create series</BaseButton>
+        <BaseButton type="submit" :loading="loading" block>Create game night</BaseButton>
       </form>
     </BaseCard>
   </div>

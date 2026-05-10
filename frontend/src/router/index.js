@@ -39,6 +39,11 @@ const routes = [
     meta: { layout: "app", requiresAuth: true, title: "Dashboard" },
   },
   {
+    path: "/game-nights",
+    component: () => import("../pages/GameNightsPage.vue"),
+    meta: { layout: "app", requiresAuth: true, title: "Game Nights" },
+  },
+  {
     path: "/groups/new",
     component: () => import("../pages/GroupNewPage.vue"),
     meta: { layout: "app", requiresAuth: true, title: "New group" },

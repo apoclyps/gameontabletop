@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
@@ -7,12 +7,64 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_session
 from app.dependencies import get_current_user
-from app.models.group import GroupMember
+from app.models.group import Group, GroupMember
 from app.models.scheduler import NightOccurrence, NightSeries, Rsvp
 from app.models.user import User
 from app.schemas.scheduler import OccurrenceCreate, OccurrenceResponse, OccurrenceUpdate, RsvpCreate, RsvpOut
 
 router = APIRouter(tags=["occurrences"])
+
+
+@router.get("/me/occurrences")
+async def list_my_upcoming_occurrences(
+    current_user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+):
+    member_result = await session.execute(
+        select(GroupMember).where(GroupMember.user_id == current_user.id)
+    )
+    group_ids = [m.group_id for m in member_result.scalars().all()]
+    if not group_ids:
+        return []
+
+    today = date.today()
+    result = await session.execute(
+        select(NightOccurrence, NightSeries, Group)
+        .join(NightSeries, NightOccurrence.series_id == NightSeries.id)
+        .join(Group, NightSeries.group_id == Group.id)
+        .where(NightSeries.group_id.in_(group_ids))
+        .where(NightOccurrence.occurrence_date >= today)
+        .where(NightOccurrence.status != "cancelled")
+        .order_by(NightOccurrence.occurrence_date.asc(), NightOccurrence.start_time.asc())
+    )
+    rows = result.all()
+
+    if not rows:
+        return []
+
+    occurrence_ids = [occ.id for occ, _, _ in rows]
+    rsvp_result = await session.execute(
+        select(Rsvp)
+        .where(Rsvp.occurrence_id.in_(occurrence_ids))
+        .where(Rsvp.user_id == current_user.id)
+    )
+    my_rsvps = {r.occurrence_id: r.response for r in rsvp_result.scalars().all()}
+
+    return [
+        {
+            "id": str(occ.id),
+            "occurrence_date": occ.occurrence_date.isoformat(),
+            "start_time": str(occ.start_time),
+            "end_time": str(occ.end_time) if occ.end_time else None,
+            "status": occ.status,
+            "series_id": str(series.id),
+            "series_title": series.title,
+            "group_id": str(group.id),
+            "group_name": group.name,
+            "my_rsvp": my_rsvps.get(occ.id),
+        }
+        for occ, series, group in rows
+    ]
 
 
 async def _get_occurrence_member(

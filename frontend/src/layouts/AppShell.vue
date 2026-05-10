@@ -21,6 +21,7 @@
         <!-- Desktop nav links -->
         <nav class="hidden md:flex items-center gap-1 flex-1 ml-4">
           <NavItem to="/dashboard">Dashboard</NavItem>
+          <NavItem to="/game-nights">Game Nights</NavItem>
           <NavItem to="/collection">Games</NavItem>
           <NavItem to="/friends">Friends</NavItem>
           <NavItem to="/explore">Explore</NavItem>
@@ -135,6 +136,9 @@
                 <DrawerItem to="/dashboard" @click="drawerOpen = false">
                   <HomeIcon class="w-5 h-5" /> Dashboard
                 </DrawerItem>
+                <DrawerItem to="/game-nights" @click="drawerOpen = false">
+                  <CalendarDaysIcon class="w-5 h-5" /> Game Nights
+                </DrawerItem>
                 <DrawerItem to="/collection" @click="drawerOpen = false">
                   <PuzzlePieceIcon class="w-5 h-5" /> Games
                 </DrawerItem>
@@ -191,6 +195,7 @@ import { useRouter } from "vue-router";
 import {
   ArrowRightOnRectangleIcon,
   Bars3Icon,
+  CalendarDaysIcon,
   ChevronDownIcon,
   GlobeAltIcon,
   HomeIcon,

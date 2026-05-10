@@ -2,11 +2,11 @@
   <div class="max-w-3xl mx-auto px-4 sm:px-6 py-8">
     <!-- Breadcrumb -->
     <nav class="text-sm text-slate-500 dark:text-slate-400 mb-6 flex items-center gap-2">
-      <router-link to="/dashboard" class="hover:text-slate-800 dark:hover:text-slate-200">Dashboard</router-link>
+      <router-link to="/game-nights" class="hover:text-slate-800 dark:hover:text-slate-200">Game Nights</router-link>
       <span>/</span>
       <router-link v-if="series" :to="`/groups/${series.group_id}`" class="hover:text-slate-800 dark:hover:text-slate-200">Group</router-link>
       <span>/</span>
-      <span class="text-slate-800 dark:text-slate-200 font-medium">{{ series?.title ?? "Series" }}</span>
+      <span class="text-slate-800 dark:text-slate-200 font-medium">{{ series?.title ?? "Game Night" }}</span>
     </nav>
 
     <div v-if="loading" class="space-y-4">
