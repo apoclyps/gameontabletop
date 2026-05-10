@@ -76,15 +76,18 @@ def _parse_game(item) -> dict:
 
 
 async def _fetch_xml(url: str) -> str:
-    async with httpx.AsyncClient(timeout=15) as client:
-        for _ in range(3):
+    async with httpx.AsyncClient(timeout=15, follow_redirects=True) as client:
+        for attempt in range(4):
             resp = await client.get(url)
             if resp.status_code == 200:
                 return resp.text
             if resp.status_code == 202:
                 await asyncio.sleep(2)
                 continue
-            raise HTTPException(status_code=502, detail="BGG API error")
+            if resp.status_code == 429:
+                await asyncio.sleep(5)
+                continue
+            raise HTTPException(status_code=502, detail=f"BGG API returned {resp.status_code}")
     raise HTTPException(status_code=504, detail="BGG API timed out")
 
 
