@@ -2,6 +2,7 @@ from fastapi import APIRouter, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.auth import router as auth_router
+from app.api.bgg import router as bgg_router
 from app.api.collection import router as collection_router
 from app.api.friends import router as friends_router
 from app.api.groups import invites_router, router as groups_router
@@ -27,6 +28,7 @@ app.add_middleware(
 api_router = APIRouter(prefix="/api")
 
 api_router.include_router(auth_router)
+api_router.include_router(bgg_router)
 api_router.include_router(users_router)
 api_router.include_router(groups_router)
 api_router.include_router(invites_router)
