@@ -1,22 +1,36 @@
+import time
 import uuid
 from datetime import date, datetime, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, status
+import httpx
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.config import settings
 from app.database import get_session
 from app.dependencies import get_current_user
 from app.models.group import Group, GroupMember
-from app.models.scheduler import NightOccurrence, NightSeries, Rsvp
+from app.models.scheduler import NightOccurrence, NightSeries, OccurrencePhoto, Rsvp
 from app.models.user import User
-from app.schemas.scheduler import OccurrenceCreate, OccurrenceResponse, OccurrenceUpdate, RsvpCreate, RsvpOut
+from app.schemas.scheduler import (
+    OccurrenceCreate,
+    OccurrencePhotoOut,
+    OccurrenceResponse,
+    OccurrenceUpdate,
+    RsvpCreate,
+    RsvpOut,
+)
 
 router = APIRouter(tags=["occurrences"])
 
+_ALLOWED_PHOTO_TYPES = {"image/jpeg", "image/png", "image/webp"}
+_MAX_PHOTO_BYTES = 10 * 1024 * 1024  # 10 MB
+
 
 @router.get("/me/occurrences")
-async def list_my_upcoming_occurrences(
+async def list_my_occurrences(
+    past: bool = Query(False),
     current_user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
 ):
@@ -28,14 +42,21 @@ async def list_my_upcoming_occurrences(
         return []
 
     today = date.today()
+    if past:
+        date_filter = NightOccurrence.occurrence_date < today
+        order = NightOccurrence.occurrence_date.desc()
+    else:
+        date_filter = NightOccurrence.occurrence_date >= today
+        order = NightOccurrence.occurrence_date.asc()
+
     result = await session.execute(
         select(NightOccurrence, NightSeries, Group)
         .join(NightSeries, NightOccurrence.series_id == NightSeries.id)
         .join(Group, NightSeries.group_id == Group.id)
         .where(NightSeries.group_id.in_(group_ids))
-        .where(NightOccurrence.occurrence_date >= today)
+        .where(date_filter)
         .where(NightOccurrence.status != "cancelled")
-        .order_by(NightOccurrence.occurrence_date.asc(), NightOccurrence.start_time.asc())
+        .order_by(order, NightOccurrence.start_time.asc())
     )
     rows = result.all()
 
@@ -57,6 +78,7 @@ async def list_my_upcoming_occurrences(
             "start_time": str(occ.start_time),
             "end_time": str(occ.end_time) if occ.end_time else None,
             "status": occ.status,
+            "notes": occ.notes,
             "series_id": str(series.id),
             "series_title": series.title,
             "group_id": str(group.id),
@@ -208,6 +230,110 @@ async def list_rsvps(
         out.username = user.username
         rsvps.append(out)
     return rsvps
+
+
+@router.get("/occurrences/{occurrence_id}/photos", response_model=list[OccurrencePhotoOut])
+async def list_photos(
+    occurrence_id: uuid.UUID,
+    current_user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+):
+    await _get_occurrence_member(occurrence_id, current_user, session)
+
+    result = await session.execute(
+        select(OccurrencePhoto, User)
+        .join(User, OccurrencePhoto.uploaded_by == User.id)
+        .where(OccurrencePhoto.occurrence_id == occurrence_id)
+        .order_by(OccurrencePhoto.created_at.asc())
+    )
+    photos = []
+    for photo, user in result.all():
+        out = OccurrencePhotoOut.model_validate(photo)
+        out.username = user.username
+        photos.append(out)
+    return photos
+
+
+@router.post(
+    "/occurrences/{occurrence_id}/photos",
+    response_model=OccurrencePhotoOut,
+    status_code=status.HTTP_201_CREATED,
+)
+async def upload_photo(
+    occurrence_id: uuid.UUID,
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+):
+    await _get_occurrence_member(occurrence_id, current_user, session)
+
+    content_type = file.content_type or ""
+    if content_type not in _ALLOWED_PHOTO_TYPES:
+        raise HTTPException(status_code=400, detail="File must be image/jpeg, image/png, or image/webp")
+
+    data = await file.read(_MAX_PHOTO_BYTES + 1)
+    if len(data) > _MAX_PHOTO_BYTES:
+        raise HTTPException(status_code=400, detail="File exceeds 10 MB limit")
+
+    if not settings.supabase_url or not settings.supabase_anon_key:
+        raise HTTPException(status_code=502, detail="Storage not configured")
+
+    photo_id = uuid.uuid4()
+    object_path = f"occurrence-photos/{occurrence_id}/{photo_id}"
+    upload_url = f"{settings.supabase_url}/storage/v1/object/{object_path}"
+
+    async with httpx.AsyncClient() as client:
+        resp = await client.put(
+            upload_url,
+            content=data,
+            headers={
+                "Authorization": f"Bearer {settings.supabase_anon_key}",
+                "Content-Type": content_type,
+                "x-upsert": "true",
+            },
+        )
+
+    if resp.status_code not in (200, 201):
+        raise HTTPException(status_code=502, detail="Storage upload failed")
+
+    timestamp = int(time.time())
+    cdn_url = f"{settings.supabase_url}/storage/v1/object/public/{object_path}?t={timestamp}"
+
+    photo = OccurrencePhoto(
+        id=photo_id,
+        occurrence_id=occurrence_id,
+        uploaded_by=current_user.id,
+        photo_url=cdn_url,
+    )
+    session.add(photo)
+    await session.commit()
+    await session.refresh(photo)
+
+    out = OccurrencePhotoOut.model_validate(photo)
+    out.username = current_user.username
+    return out
+
+
+@router.delete("/occurrences/{occurrence_id}/photos/{photo_id}", status_code=204)
+async def delete_photo(
+    occurrence_id: uuid.UUID,
+    photo_id: uuid.UUID,
+    current_user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+):
+    _, member = await _get_occurrence_member(occurrence_id, current_user, session)
+
+    photo = await session.get(OccurrencePhoto, photo_id)
+    if not photo or photo.occurrence_id != occurrence_id:
+        raise HTTPException(status_code=404, detail="Photo not found")
+
+    is_organiser = member.role in ("organiser", "owner")
+    is_uploader = photo.uploaded_by == current_user.id
+    if not is_organiser and not is_uploader:
+        raise HTTPException(status_code=403, detail="Cannot delete this photo")
+
+    await session.delete(photo)
+    await session.commit()
 
 
 async def _rsvp_counts(occurrence_id: uuid.UUID, session: AsyncSession) -> dict[str, int]:

@@ -36,7 +36,8 @@ async function refreshAccessToken() {
 
 async function request(path, options = {}) {
   const { access } = getTokens();
-  const headers = { "Content-Type": "application/json", ...options.headers };
+  const isFormData = options.body instanceof FormData;
+  const headers = isFormData ? { ...options.headers } : { "Content-Type": "application/json", ...options.headers };
   if (access) headers["Authorization"] = `Bearer ${access}`;
 
   let res = await fetch(`${apiBase}${path}`, { ...options, headers });

@@ -2,6 +2,28 @@
   <div class="max-w-3xl mx-auto px-4 sm:px-6 py-8">
     <div class="flex items-center justify-between mb-6">
       <h1 class="text-2xl font-bold text-slate-900 dark:text-white">Game Nights</h1>
+
+      <!-- Upcoming / Past toggle -->
+      <div class="flex rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden text-sm">
+        <button
+          @click="switchTab('upcoming')"
+          :class="tab === 'upcoming'
+            ? 'bg-primary-600 text-white'
+            : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700'"
+          class="px-4 py-1.5 font-medium transition-colors"
+        >
+          Upcoming
+        </button>
+        <button
+          @click="switchTab('past')"
+          :class="tab === 'past'
+            ? 'bg-primary-600 text-white'
+            : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700'"
+          class="px-4 py-1.5 font-medium transition-colors border-l border-slate-200 dark:border-slate-700"
+        >
+          Past
+        </button>
+      </div>
     </div>
 
     <div v-if="loading" class="space-y-3">
@@ -12,8 +34,10 @@
 
     <div v-else-if="grouped.length === 0" class="text-center py-20">
       <CalendarDaysIcon class="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
-      <p class="text-slate-500 dark:text-slate-400 mb-4">No upcoming game nights across any of your groups.</p>
-      <router-link to="/groups/new" class="text-sm text-primary-600 dark:text-primary-400 hover:underline">
+      <p class="text-slate-500 dark:text-slate-400 mb-4">
+        {{ tab === 'past' ? 'No past game nights found.' : 'No upcoming game nights across any of your groups.' }}
+      </p>
+      <router-link v-if="tab === 'upcoming'" to="/groups/new" class="text-sm text-primary-600 dark:text-primary-400 hover:underline">
         Create a group to get started
       </router-link>
     </div>
@@ -52,13 +76,20 @@
                 </router-link>
                 <span class="text-slate-300 dark:text-slate-600">·</span>
                 <span class="text-xs text-slate-400 dark:text-slate-500">{{ formatTime(night.start_time) }}</span>
+                <template v-if="tab === 'past' && night.notes">
+                  <span class="text-slate-300 dark:text-slate-600">·</span>
+                  <span class="text-xs text-slate-400 dark:text-slate-500 truncate max-w-[120px]">{{ night.notes }}</span>
+                </template>
               </div>
             </div>
           </div>
 
           <div class="flex items-center gap-2 flex-shrink-0 ml-3">
-            <span :class="seqLabel(night._seqIdx, night.occurrence_date).class" class="text-xs px-2 py-0.5 rounded-full font-medium whitespace-nowrap">
-              {{ seqLabel(night._seqIdx, night.occurrence_date).text }}
+            <span v-if="tab === 'past'" class="text-xs px-2 py-0.5 rounded-full font-medium whitespace-nowrap bg-slate-100 text-slate-500 dark:bg-slate-700 dark:text-slate-400">
+              Past
+            </span>
+            <span v-else :class="seqLabel(night._seqIdx).class" class="text-xs px-2 py-0.5 rounded-full font-medium whitespace-nowrap">
+              {{ seqLabel(night._seqIdx).text }}
             </span>
             <RsvpBadge :rsvp="night.my_rsvp" />
           </div>
@@ -78,17 +109,31 @@ import { request } from "../services/api.js";
 const nights = ref([]);
 const loading = ref(true);
 const error = ref(null);
+const tab = ref("upcoming");
 
-const today = new Date();
-today.setHours(0, 0, 0, 0);
+async function fetchNights() {
+  loading.value = true;
+  error.value = null;
+  try {
+    const url = tab.value === "past" ? "/api/me/occurrences?past=true" : "/api/me/occurrences";
+    const res = await request(url);
+    if (!res.ok) throw new Error("Failed to load game nights");
+    nights.value = await res.json();
+  } catch (err) {
+    error.value = err.message;
+  } finally {
+    loading.value = false;
+  }
+}
 
-function isPast(dateStr) {
-  return new Date(dateStr + "T00:00:00") < today;
+function switchTab(t) {
+  tab.value = t;
+  fetchNights();
 }
 
 const grouped = computed(() => {
   const map = new Map();
-  for (const night of nights.value.filter((n) => !isPast(n.occurrence_date))) {
+  for (const night of nights.value) {
     if (!map.has(night.occurrence_date)) map.set(night.occurrence_date, []);
     map.get(night.occurrence_date).push(night);
   }
@@ -99,24 +144,13 @@ const grouped = computed(() => {
   }));
 });
 
-function seqLabel(idx, dateStr) {
-  if (isPast(dateStr)) return { text: "Past", class: "bg-red-100 text-red-600 dark:bg-red-950 dark:text-red-400" };
+function seqLabel(idx) {
   if (idx === 0) return { text: "Next up", class: "bg-primary-100 text-primary-700 dark:bg-primary-950 dark:text-primary-300" };
   if (idx === 1) return { text: "Scheduled", class: "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300" };
   return { text: "Upcoming", class: "bg-slate-100 text-slate-500 dark:bg-slate-700 dark:text-slate-400" };
 }
 
-onMounted(async () => {
-  try {
-    const res = await request("/api/me/occurrences");
-    if (!res.ok) throw new Error("Failed to load game nights");
-    nights.value = await res.json();
-  } catch (err) {
-    error.value = err.message;
-  } finally {
-    loading.value = false;
-  }
-});
+onMounted(fetchNights);
 
 function formatDateHeading(iso) {
   const d = new Date(iso + "T00:00:00");
@@ -124,8 +158,10 @@ function formatDateHeading(iso) {
   today.setHours(0, 0, 0, 0);
   const tomorrow = new Date(today);
   tomorrow.setDate(today.getDate() + 1);
-  if (d.getTime() === today.getTime()) return "Today";
-  if (d.getTime() === tomorrow.getTime()) return "Tomorrow";
+  if (tab.value === "upcoming") {
+    if (d.getTime() === today.getTime()) return "Today";
+    if (d.getTime() === tomorrow.getTime()) return "Tomorrow";
+  }
   return d.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" });
 }
 

@@ -25,7 +25,6 @@
               {{ formatTime(occurrence.start_time) }}
               <span v-if="occurrence.end_time"> – {{ formatTime(occurrence.end_time) }}</span>
             </p>
-            <p v-if="occurrence.notes" class="text-sm text-slate-600 dark:text-slate-300 mt-2">{{ occurrence.notes }}</p>
             <p v-if="occurrence.postponed_from_date" class="text-xs text-amber-600 dark:text-amber-400 mt-1">
               Moved from {{ formatDate(occurrence.postponed_from_date) }}
             </p>
@@ -43,6 +42,87 @@
             <BaseButton @click="postpone" :disabled="!postponeDate" variant="secondary" size="sm">Postpone</BaseButton>
           </div>
           <BaseButton @click="cancel" variant="danger" size="sm">Cancel night</BaseButton>
+        </div>
+      </BaseCard>
+
+      <!-- Session Notes -->
+      <BaseCard class="mb-4">
+        <div class="flex items-center justify-between mb-3">
+          <h2 class="font-semibold text-slate-700 dark:text-slate-300">Session Notes</h2>
+          <button
+            v-if="isOrganiser && !editingNotes"
+            @click="startEditNotes"
+            class="text-xs text-primary-600 dark:text-primary-400 hover:underline"
+          >
+            {{ occurrence.notes ? 'Edit' : 'Add notes' }}
+          </button>
+        </div>
+
+        <template v-if="editingNotes">
+          <textarea
+            v-model="notesDraft"
+            rows="4"
+            placeholder="How did the session go? What games were played?"
+            class="w-full border border-slate-300 dark:border-slate-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none"
+          />
+          <div class="flex gap-2 mt-2">
+            <BaseButton @click="saveNotes" :disabled="savingNotes" size="sm">
+              {{ savingNotes ? 'Saving…' : 'Save' }}
+            </BaseButton>
+            <BaseButton @click="cancelEditNotes" variant="secondary" size="sm">Cancel</BaseButton>
+          </div>
+        </template>
+        <p v-else-if="occurrence.notes" class="text-sm text-slate-600 dark:text-slate-300 whitespace-pre-wrap">{{ occurrence.notes }}</p>
+        <p v-else class="text-sm text-slate-400 dark:text-slate-500 italic">No notes yet.</p>
+      </BaseCard>
+
+      <!-- Photos -->
+      <BaseCard class="mb-4">
+        <div class="flex items-center justify-between mb-3">
+          <h2 class="font-semibold text-slate-700 dark:text-slate-300">Photos</h2>
+          <label class="cursor-pointer text-xs text-primary-600 dark:text-primary-400 hover:underline flex items-center gap-1">
+            <CameraIcon class="w-3.5 h-3.5" />
+            Add photo
+            <input
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              class="hidden"
+              @change="uploadPhoto"
+              ref="photoInput"
+            />
+          </label>
+        </div>
+
+        <div v-if="uploadingPhoto" class="text-xs text-slate-500 dark:text-slate-400 mb-3">Uploading…</div>
+        <BaseAlert v-if="photoError" variant="error" :message="photoError" class="mb-3" />
+
+        <div v-if="photos.length === 0 && !uploadingPhoto" class="text-sm text-slate-400 dark:text-slate-500 italic">
+          No photos yet.
+        </div>
+
+        <div v-else class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+          <div
+            v-for="photo in photos"
+            :key="photo.id"
+            class="relative group aspect-square rounded-xl overflow-hidden bg-slate-100 dark:bg-slate-700"
+          >
+            <img
+              :src="photo.photo_url"
+              :alt="`Photo by ${photo.username}`"
+              class="w-full h-full object-cover"
+            />
+            <div class="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-end justify-between p-1.5 opacity-0 group-hover:opacity-100">
+              <span class="text-white text-xs font-medium drop-shadow truncate">{{ photo.username }}</span>
+              <button
+                v-if="canDeletePhoto(photo)"
+                @click="deletePhoto(photo.id)"
+                class="text-white hover:text-red-300 transition-colors flex-shrink-0"
+                title="Delete photo"
+              >
+                <TrashIcon class="w-4 h-4" />
+              </button>
+            </div>
+          </div>
         </div>
       </BaseCard>
 
@@ -101,6 +181,7 @@
 <script setup>
 import { onMounted, ref } from "vue";
 import { useRoute } from "vue-router";
+import { CameraIcon, TrashIcon } from "@heroicons/vue/24/outline";
 import BaseAlert from "../components/ui/BaseAlert.vue";
 import BaseAvatar from "../components/ui/BaseAvatar.vue";
 import BaseButton from "../components/ui/BaseButton.vue";
@@ -114,21 +195,35 @@ const occurrenceId = route.params.id;
 const occurrence = ref(null);
 const rsvps = ref([]);
 const myRsvp = ref(null);
+const photos = ref([]);
 const loading = ref(true);
 const error = ref(null);
 const isOrganiser = ref(false);
+const currentUsername = ref(null);
 const submittingRsvp = ref(false);
 const postponeDate = ref("");
 
+// Notes editing
+const editingNotes = ref(false);
+const notesDraft = ref("");
+const savingNotes = ref(false);
+
+// Photo upload
+const photoInput = ref(null);
+const uploadingPhoto = ref(false);
+const photoError = ref(null);
+
 onMounted(async () => {
   try {
-    const [oRes, rRes] = await Promise.all([
+    const [oRes, rRes, pRes] = await Promise.all([
       request(`/api/occurrences/${occurrenceId}`),
       request(`/api/occurrences/${occurrenceId}/rsvps`),
+      request(`/api/occurrences/${occurrenceId}/photos`),
     ]);
     if (!oRes.ok) throw new Error("Failed to load occurrence");
     occurrence.value = await oRes.json();
     rsvps.value = rRes.ok ? await rRes.json() : [];
+    photos.value = pRes.ok ? await pRes.json() : [];
 
     const seriesRes = await request(`/api/series/${occurrence.value.series_id}`);
     if (seriesRes.ok) {
@@ -141,6 +236,7 @@ onMounted(async () => {
     }
 
     const me = await (await request("/api/users/me")).json();
+    currentUsername.value = me.username;
     myRsvp.value = rsvps.value.find((r) => r.username === me.username) ?? null;
   } catch (err) {
     error.value = err.message;
@@ -183,6 +279,69 @@ async function cancel() {
     body: JSON.stringify({ status: "cancelled" }),
   });
   if (res.ok) occurrence.value = await res.json();
+}
+
+function startEditNotes() {
+  notesDraft.value = occurrence.value.notes ?? "";
+  editingNotes.value = true;
+}
+
+function cancelEditNotes() {
+  editingNotes.value = false;
+}
+
+async function saveNotes() {
+  savingNotes.value = true;
+  try {
+    const res = await request(`/api/occurrences/${occurrenceId}`, {
+      method: "PATCH",
+      body: JSON.stringify({ notes: notesDraft.value }),
+    });
+    if (!res.ok) throw new Error("Failed to save notes");
+    occurrence.value = await res.json();
+    editingNotes.value = false;
+  } finally {
+    savingNotes.value = false;
+  }
+}
+
+async function uploadPhoto(event) {
+  const file = event.target.files?.[0];
+  if (!file) return;
+  photoError.value = null;
+  uploadingPhoto.value = true;
+  try {
+    const formData = new FormData();
+    formData.append("file", file);
+    const res = await request(`/api/occurrences/${occurrenceId}/photos`, {
+      method: "POST",
+      body: formData,
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      throw new Error(data.detail ?? "Upload failed");
+    }
+    const photo = await res.json();
+    photos.value = [...photos.value, photo];
+  } catch (err) {
+    photoError.value = err.message;
+  } finally {
+    uploadingPhoto.value = false;
+    if (photoInput.value) photoInput.value.value = "";
+  }
+}
+
+async function deletePhoto(photoId) {
+  const res = await request(`/api/occurrences/${occurrenceId}/photos/${photoId}`, {
+    method: "DELETE",
+  });
+  if (res.ok || res.status === 204) {
+    photos.value = photos.value.filter((p) => p.id !== photoId);
+  }
+}
+
+function canDeletePhoto(photo) {
+  return isOrganiser.value || photo.username === currentUsername.value;
 }
 
 function formatDate(d) {

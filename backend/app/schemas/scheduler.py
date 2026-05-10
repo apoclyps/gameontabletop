@@ -189,6 +189,18 @@ class GuestContext(BaseModel):
     occurrence_start_time: time | None = None
 
 
+class OccurrencePhotoOut(BaseModel):
+    id: uuid.UUID
+    occurrence_id: uuid.UUID
+    uploaded_by: uuid.UUID
+    photo_url: str
+    caption: str | None
+    created_at: datetime
+    username: str | None = None
+
+    model_config = {"from_attributes": True}
+
+
 class RsvpCreate(BaseModel):
     response: RsvpChoice
     note: str | None = None
