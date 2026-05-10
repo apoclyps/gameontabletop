@@ -40,6 +40,13 @@ jobs:
         env:
           DATABASE_URL: ${{ secrets.DATABASE_DIRECT_URL }}
 
+      - name: Seed database
+        if: vars.SEED_DATABASE == 'true'
+        working-directory: backend
+        run: uv run python seed.py
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_DIRECT_URL }}
+
   deploy-backend:
     name: Deploy backend to Vercel
     runs-on: ubuntu-latest
