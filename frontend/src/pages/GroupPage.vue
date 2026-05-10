@@ -74,6 +74,32 @@
         </div>
       </section>
 
+      <!-- Public toggle (organisers only) -->
+      <section v-if="isOrganiser" class="mb-8">
+        <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-4">
+          <div class="flex items-start justify-between gap-4">
+            <div>
+              <p class="text-sm font-medium text-slate-800 dark:text-slate-200">Open to the public</p>
+              <p class="text-xs text-slate-400 dark:text-slate-500 mt-0.5">Upcoming nights will be listed on the public explore page</p>
+            </div>
+            <button
+              type="button"
+              role="switch"
+              :aria-checked="group.is_public"
+              @click="togglePublic"
+              :disabled="savingPublic"
+              :class="group.is_public ? 'bg-primary-600' : 'bg-slate-300 dark:bg-slate-600'"
+              class="relative inline-flex h-6 w-11 flex-shrink-0 rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 disabled:opacity-50"
+            >
+              <span
+                :class="group.is_public ? 'translate-x-5' : 'translate-x-0'"
+                class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"
+              />
+            </button>
+          </div>
+        </div>
+      </section>
+
       <!-- Members -->
       <section>
         <h2 class="font-semibold text-slate-700 dark:text-slate-300 mb-3">Members</h2>
@@ -105,7 +131,10 @@ import BaseAvatar from "../components/ui/BaseAvatar.vue";
 import BaseButton from "../components/ui/BaseButton.vue";
 import BaseCard from "../components/ui/BaseCard.vue";
 import SkeletonLoader from "../components/ui/SkeletonLoader.vue";
+import { useToast } from "../composables/useToast.js";
 import { request } from "../services/api.js";
+
+const { success: toastSuccess, error: toastError } = useToast();
 
 const route = useRoute();
 const groupId = route.params.id;
@@ -119,6 +148,7 @@ const showInviteModal = ref(false);
 const inviteLink = ref(null);
 const creatingInvite = ref(false);
 const copied = ref(false);
+const savingPublic = ref(false);
 
 const isOrganiser = computed(() => group.value?.my_role === "organiser" || group.value?.my_role === "owner");
 
@@ -165,6 +195,24 @@ function closeInviteModal() {
   showInviteModal.value = false;
   inviteLink.value = null;
   copied.value = false;
+}
+
+async function togglePublic() {
+  savingPublic.value = true;
+  const newValue = !group.value.is_public;
+  try {
+    const res = await request(`/api/groups/${groupId}`, {
+      method: "PATCH",
+      body: JSON.stringify({ is_public: newValue }),
+    });
+    if (!res.ok) throw new Error("Failed to update group");
+    group.value = await res.json();
+    toastSuccess(newValue ? "Group is now public" : "Group is now private");
+  } catch (err) {
+    toastError(err.message);
+  } finally {
+    savingPublic.value = false;
+  }
 }
 
 function statusClass(status) {

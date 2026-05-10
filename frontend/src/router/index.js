@@ -74,6 +74,21 @@ const routes = [
     meta: { layout: "app", requiresAuth: true, title: "Poll" },
   },
   {
+    path: "/explore",
+    component: () => import("../pages/ExplorePage.vue"),
+    meta: { layout: "none", title: "Explore" },
+  },
+  {
+    path: "/events/:id",
+    component: () => import("../pages/PublicEventPage.vue"),
+    meta: { layout: "none", title: "Event" },
+  },
+  {
+    path: "/users/:username",
+    component: () => import("../pages/PublicProfilePage.vue"),
+    meta: { layout: "none", title: "Profile" },
+  },
+  {
     path: "/rsvp/:token",
     component: () => import("../pages/GuestRsvpPage.vue"),
     meta: { layout: "none", title: "RSVP" },

@@ -17,8 +17,8 @@ const props = defineProps({
   alt: { type: String, default: "Avatar" },
 });
 
-const sizeClasses = computed(() => ({ sm: "w-7 h-7", md: "w-9 h-9", lg: "w-12 h-12", xl: "w-20 h-20" }[props.size] ?? "w-9 h-9"));
-const textSizeClasses = computed(() => ({ sm: "text-xs", md: "text-sm", lg: "text-base", xl: "text-2xl" }[props.size] ?? "text-sm"));
+const sizeClasses = computed(() => ({ sm: "w-7 h-7", md: "w-9 h-9", lg: "w-12 h-12", xl: "w-20 h-20", "2xl": "w-24 h-24" }[props.size] ?? "w-9 h-9"));
+const textSizeClasses = computed(() => ({ sm: "text-xs", md: "text-sm", lg: "text-base", xl: "text-2xl", "2xl": "text-3xl" }[props.size] ?? "text-sm"));
 
 const COLORS = [
   "bg-primary-600", "bg-teal-600", "bg-cyan-600", "bg-sky-600",

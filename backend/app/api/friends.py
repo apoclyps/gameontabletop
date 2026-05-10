@@ -1,10 +1,12 @@
 import uuid
 from datetime import datetime, timezone
 
+import jwt
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import and_, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.config import settings
 from app.database import get_session
 from app.dependencies import get_current_user
 from app.models.collection import UserFriendship, UserGameCollection
@@ -16,6 +18,7 @@ from app.schemas.collection import (
     FriendResponse,
     FriendshipPatch,
 )
+from app.services.auth import create_friend_invite_token, decode_token
 from app.services.collection import get_friend_ids
 
 router = APIRouter(prefix="/friends", tags=["friends"])
@@ -168,6 +171,94 @@ async def list_friend_requests(
             )
         )
     return requests
+
+
+@router.post("/invite")
+async def create_friend_invite(
+    current_user: User = Depends(get_current_user),
+):
+    token = create_friend_invite_token(str(current_user.id))
+    invite_url = f"{settings.frontend_url}/friend-invite/{token}"
+    return {"token": token, "url": invite_url}
+
+
+@router.get("/invite/{token}")
+async def preview_friend_invite(
+    token: str,
+    session: AsyncSession = Depends(get_session),
+):
+    try:
+        payload = decode_token(token)
+        if payload.get("type") != "friend_invite":
+            raise ValueError("wrong token type")
+        inviter_id = uuid.UUID(payload["sub"])
+    except (jwt.PyJWTError, ValueError, KeyError):
+        raise HTTPException(status_code=404, detail="Invite not found or expired")
+
+    inviter = await session.get(User, inviter_id)
+    if not inviter:
+        raise HTTPException(status_code=404, detail="Invite not found")
+
+    return {
+        "inviter_id": str(inviter.id),
+        "inviter_username": inviter.username,
+        "inviter_display_name": inviter.display_name,
+        "inviter_avatar_url": inviter.avatar_url,
+    }
+
+
+@router.post("/invite/{token}/accept")
+async def accept_friend_invite(
+    token: str,
+    current_user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+):
+    try:
+        payload = decode_token(token)
+        if payload.get("type") != "friend_invite":
+            raise ValueError("wrong token type")
+        inviter_id = uuid.UUID(payload["sub"])
+    except (jwt.PyJWTError, ValueError, KeyError):
+        raise HTTPException(status_code=404, detail="Invite not found or expired")
+
+    if inviter_id == current_user.id:
+        raise HTTPException(status_code=400, detail="Cannot accept your own invite")
+
+    existing_result = await session.execute(
+        select(UserFriendship).where(
+            or_(
+                and_(
+                    UserFriendship.requester_id == inviter_id,
+                    UserFriendship.addressee_id == current_user.id,
+                ),
+                and_(
+                    UserFriendship.requester_id == current_user.id,
+                    UserFriendship.addressee_id == inviter_id,
+                ),
+            )
+        )
+    )
+    existing = existing_result.scalar_one_or_none()
+
+    if existing:
+        if existing.status == "blocked":
+            raise HTTPException(status_code=400, detail="Cannot connect: blocked")
+        if existing.status == "accepted":
+            return {"message": "Already friends"}
+        existing.status = "accepted"
+        existing.responded_at = datetime.now(timezone.utc)
+        await session.commit()
+        return {"message": "Friend added successfully"}
+
+    friendship = UserFriendship(
+        requester_id=inviter_id,
+        addressee_id=current_user.id,
+        status="accepted",
+        responded_at=datetime.now(timezone.utc),
+    )
+    session.add(friendship)
+    await session.commit()
+    return {"message": "Friend added successfully"}
 
 
 @router.patch("/{friendship_id}", response_model=FriendResponse)

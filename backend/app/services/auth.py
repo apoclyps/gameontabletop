@@ -50,3 +50,10 @@ def create_password_reset_token(user_id: str) -> str:
         {"sub": user_id, "type": "reset"},
         timedelta(hours=settings.password_reset_expire_hours),
     )
+
+
+def create_friend_invite_token(user_id: str) -> str:
+    return _create_token(
+        {"sub": user_id, "type": "friend_invite"},
+        timedelta(days=30),
+    )

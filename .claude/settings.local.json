@@ -14,7 +14,16 @@
       "Bash(curl -sI \"https://api.github.com/repos/apoclyps/gameontabletop/actions/jobs/75158262231/logs\")",
       "Bash(curl -s \"https://api.github.com/repos/apoclyps/gameontabletop/actions/jobs/75158782377\")",
       "Bash(npx skills *)",
-      "Bash(claude mcp *)"
+      "Bash(claude mcp *)",
+      "Bash(python -m pytest tests/test_polls.py -v)",
+      "Bash(python -m pytest --tb=short -q)",
+      "mcp__claude_ai_Supabase__list_projects",
+      "mcp__claude_ai_Supabase__list_migrations",
+      "mcp__claude_ai_Supabase__list_tables",
+      "mcp__claude_ai_Vercel__list_teams",
+      "mcp__claude_ai_Vercel__list_projects",
+      "mcp__claude_ai_Vercel__list_deployments",
+      "mcp__claude_ai_Supabase__execute_sql"
     ]
   }
 }

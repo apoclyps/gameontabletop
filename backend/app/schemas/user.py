@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, Field
 
 
 class UserResponse(BaseModel):
@@ -11,6 +11,8 @@ class UserResponse(BaseModel):
     display_name: str | None
     bio: str | None
     avatar_url: str | None
+    profile_public: bool
+    stats_public: bool
     is_verified: bool
     created_at: datetime
 
@@ -18,6 +20,8 @@ class UserResponse(BaseModel):
 
 
 class UpdateProfileRequest(BaseModel):
-    display_name: str | None = None
-    bio: str | None = None
+    display_name: str | None = Field(None, max_length=100)
+    bio: str | None = Field(None, max_length=500)
     avatar_url: str | None = None
+    profile_public: bool | None = None
+    stats_public: bool | None = None
