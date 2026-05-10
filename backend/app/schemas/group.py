@@ -10,12 +10,14 @@ class GroupCreate(BaseModel):
     description: str | None = None
     slug: str | None = Field(None, max_length=100, pattern=r"^[a-z0-9-]+$")
     is_public: bool = False
+    seat_size: int | None = Field(None, ge=1, le=100)
 
 
 class GroupUpdate(BaseModel):
     name: str | None = Field(None, min_length=1, max_length=100)
     description: str | None = None
     is_public: bool | None = None
+    seat_size: int | None = Field(None, ge=1, le=100)
 
 
 class GroupResponse(BaseModel):
@@ -25,6 +27,7 @@ class GroupResponse(BaseModel):
     slug: str
     owner_id: uuid.UUID
     is_public: bool
+    seat_size: int | None
     created_at: datetime
     member_count: int | None = None
     my_role: str | None = None

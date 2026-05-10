@@ -21,13 +21,14 @@
           <p v-if="group.description" class="text-slate-500 dark:text-slate-400 mt-1 text-sm">{{ group.description }}</p>
           <p class="text-xs text-slate-400 dark:text-slate-500 mt-1">
             {{ group.member_count }} {{ group.member_count === 1 ? "member" : "members" }} · {{ group.my_role }}
+            <span v-if="group.seat_size"> · {{ group.seat_size }} seat{{ group.seat_size === 1 ? "" : "s" }}</span>
           </p>
         </div>
         <div class="flex gap-2">
           <BaseButton v-if="isOrganiser" @click="showInviteModal = true" variant="secondary" size="sm">
             <LinkIcon class="w-4 h-4 mr-1.5" />Invite
           </BaseButton>
-          <BaseButton v-if="isOwner" @click="showDeleteModal = true" variant="danger" size="sm">
+          <BaseButton v-if="isOwner" @click="openDeleteModal" variant="danger" size="sm">
             Delete
           </BaseButton>
         </div>
@@ -39,11 +40,18 @@
           <div v-if="showDeleteModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
             <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-xl p-6 max-w-sm w-full border border-slate-200 dark:border-slate-700">
               <h3 class="font-semibold text-slate-900 dark:text-white mb-2">Delete group?</h3>
-              <p class="text-sm text-slate-500 dark:text-slate-400 mb-6">
+              <p class="text-sm text-slate-500 dark:text-slate-400 mb-4">
                 <strong class="text-slate-700 dark:text-slate-200">{{ group.name }}</strong> and all its game nights will be permanently deleted. This cannot be undone.
               </p>
+              <p class="text-xs text-slate-500 dark:text-slate-400 mb-2">Type <strong class="text-slate-700 dark:text-slate-200">{{ group.name }}</strong> to confirm:</p>
+              <input
+                v-model="deleteConfirmText"
+                type="text"
+                :placeholder="group.name"
+                class="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-red-500 mb-4"
+              />
               <div class="flex gap-3">
-                <BaseButton @click="deleteGroup" variant="danger" :loading="deleting" class="flex-1">Delete</BaseButton>
+                <BaseButton @click="deleteGroup" variant="danger" :loading="deleting" :disabled="deleteConfirmText !== group.name" class="flex-1">Delete</BaseButton>
                 <BaseButton @click="showDeleteModal = false" variant="secondary" class="flex-1">Cancel</BaseButton>
               </div>
             </div>
@@ -56,16 +64,53 @@
         <Transition enter-active-class="transition-opacity duration-150" enter-from-class="opacity-0" enter-to-class="opacity-100" leave-active-class="transition-opacity duration-100" leave-from-class="opacity-100" leave-to-class="opacity-0">
           <div v-if="showInviteModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
             <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-xl p-6 max-w-sm w-full border border-slate-200 dark:border-slate-700">
-              <h3 class="font-semibold text-slate-900 dark:text-white mb-4">Invite link</h3>
-              <div v-if="inviteLink" class="space-y-3">
-                <p class="text-sm text-slate-600 dark:text-slate-300 break-all font-mono bg-slate-50 dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-700">{{ inviteLink }}</p>
-                <BaseButton @click="copyInviteLink" variant="secondary" block>
-                  {{ copied ? "Copied!" : "Copy link" }}
+              <h3 class="font-semibold text-slate-900 dark:text-white mb-4">Invite members</h3>
+
+              <!-- Tabs -->
+              <div class="flex gap-1 bg-slate-100 dark:bg-slate-900 rounded-xl p-1 mb-4">
+                <button
+                  @click="inviteTab = 'link'"
+                  :class="inviteTab === 'link' ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'"
+                  class="flex-1 text-sm font-medium px-3 py-1.5 rounded-lg transition-colors"
+                >Link</button>
+                <button
+                  @click="inviteTab = 'email'"
+                  :class="inviteTab === 'email' ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'"
+                  class="flex-1 text-sm font-medium px-3 py-1.5 rounded-lg transition-colors"
+                >Email</button>
+              </div>
+
+              <!-- Link tab -->
+              <div v-if="inviteTab === 'link'">
+                <div v-if="inviteLink" class="space-y-3">
+                  <p class="text-sm text-slate-600 dark:text-slate-300 break-all font-mono bg-slate-50 dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-700">{{ inviteLink }}</p>
+                  <BaseButton @click="copyInviteLink" variant="secondary" block>
+                    {{ copied ? "Copied!" : "Copy link" }}
+                  </BaseButton>
+                </div>
+                <BaseButton v-else @click="createInvite" :loading="creatingInvite" block>
+                  Generate invite link
                 </BaseButton>
               </div>
-              <BaseButton v-else @click="createInvite" :loading="creatingInvite" block>
-                Generate invite link
-              </BaseButton>
+
+              <!-- Email tab -->
+              <div v-else class="space-y-3">
+                <div v-if="emailInviteSent" class="text-sm text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950 rounded-xl p-3 border border-emerald-200 dark:border-emerald-800">
+                  Invite sent to {{ inviteEmail }}
+                </div>
+                <template v-else>
+                  <input
+                    v-model="inviteEmail"
+                    type="email"
+                    placeholder="friend@example.com"
+                    class="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  />
+                  <BaseButton @click="sendEmailInvite" :loading="sendingEmailInvite" :disabled="!inviteEmail" block>
+                    Send invite
+                  </BaseButton>
+                </template>
+              </div>
+
               <BaseButton @click="closeInviteModal" variant="ghost" block class="mt-2">Close</BaseButton>
             </div>
           </div>
@@ -97,9 +142,12 @@
         </div>
       </section>
 
-      <!-- Public toggle (organisers only) -->
+      <!-- Settings (organisers only) -->
       <section v-if="isOrganiser" class="mb-8">
-        <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-4">
+        <h2 class="font-semibold text-slate-700 dark:text-slate-300 mb-3">Settings</h2>
+        <div class="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-4 space-y-4">
+
+          <!-- Public toggle -->
           <div class="flex items-start justify-between gap-4">
             <div>
               <p class="text-sm font-medium text-slate-800 dark:text-slate-200">Open to the public</p>
@@ -120,6 +168,43 @@
               />
             </button>
           </div>
+
+          <div class="border-t border-slate-100 dark:border-slate-700" />
+
+          <!-- Edit form -->
+          <form @submit.prevent="saveSettings" class="space-y-3">
+            <div>
+              <label class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Group name</label>
+              <input
+                v-model="settingsForm.name"
+                type="text"
+                maxlength="100"
+                required
+                class="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500"
+              />
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Description</label>
+              <textarea
+                v-model="settingsForm.description"
+                rows="2"
+                class="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none"
+                placeholder="What kind of games do you play?"
+              />
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">Seat size <span class="font-normal text-slate-400">(optional)</span></label>
+              <input
+                v-model.number="settingsForm.seat_size"
+                type="number"
+                min="1"
+                max="100"
+                placeholder="No limit"
+                class="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500"
+              />
+            </div>
+            <BaseButton type="submit" :loading="savingSettings" size="sm">Save changes</BaseButton>
+          </form>
         </div>
       </section>
 
@@ -146,7 +231,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from "vue";
+import { computed, onMounted, reactive, ref } from "vue";
 import { LinkIcon } from "@heroicons/vue/24/outline";
 import { useRoute, useRouter } from "vue-router";
 import BaseAlert from "../components/ui/BaseAlert.vue";
@@ -170,13 +255,26 @@ const series = ref([]);
 const members = ref([]);
 const loading = ref(true);
 const error = ref(null);
+
+// invite modal
 const showInviteModal = ref(false);
+const inviteTab = ref("link");
 const inviteLink = ref(null);
 const creatingInvite = ref(false);
 const copied = ref(false);
-const savingPublic = ref(false);
+const inviteEmail = ref("");
+const sendingEmailInvite = ref(false);
+const emailInviteSent = ref(false);
+
+// delete modal
 const showDeleteModal = ref(false);
 const deleting = ref(false);
+const deleteConfirmText = ref("");
+
+// settings
+const settingsForm = reactive({ name: "", description: "", seat_size: null });
+const savingSettings = ref(false);
+const savingPublic = ref(false);
 
 const isOrganiser = computed(() => group.value?.my_role === "organiser" || group.value?.my_role === "owner");
 const isOwner = computed(() => !!group.value && !!currentUser.value && group.value.owner_id === currentUser.value.id);
@@ -192,6 +290,11 @@ onMounted(async () => {
     group.value = await gRes.json();
     series.value = sRes.ok ? await sRes.json() : [];
     members.value = mRes.ok ? await mRes.json() : [];
+    Object.assign(settingsForm, {
+      name: group.value.name,
+      description: group.value.description ?? "",
+      seat_size: group.value.seat_size ?? null,
+    });
   } catch (err) {
     error.value = err.message;
   } finally {
@@ -220,13 +323,39 @@ async function copyInviteLink() {
   setTimeout(() => (copied.value = false), 2000);
 }
 
+async function sendEmailInvite() {
+  if (!inviteEmail.value) return;
+  sendingEmailInvite.value = true;
+  try {
+    const res = await request(`/api/groups/${groupId}/invites`, {
+      method: "POST",
+      body: JSON.stringify({ email: inviteEmail.value, expires_in_days: 7 }),
+    });
+    if (!res.ok) throw new Error("Failed to send invite");
+    emailInviteSent.value = true;
+  } catch (err) {
+    toastError(err.message);
+  } finally {
+    sendingEmailInvite.value = false;
+  }
+}
+
 function closeInviteModal() {
   showInviteModal.value = false;
   inviteLink.value = null;
   copied.value = false;
+  inviteEmail.value = "";
+  emailInviteSent.value = false;
+  inviteTab.value = "link";
+}
+
+function openDeleteModal() {
+  deleteConfirmText.value = "";
+  showDeleteModal.value = true;
 }
 
 async function deleteGroup() {
+  if (deleteConfirmText.value !== group.value.name) return;
   deleting.value = true;
   try {
     const res = await request(`/api/groups/${groupId}`, { method: "DELETE" });
@@ -237,6 +366,28 @@ async function deleteGroup() {
     showDeleteModal.value = false;
   } finally {
     deleting.value = false;
+  }
+}
+
+async function saveSettings() {
+  savingSettings.value = true;
+  try {
+    const payload = {
+      name: settingsForm.name,
+      description: settingsForm.description || null,
+      seat_size: settingsForm.seat_size || null,
+    };
+    const res = await request(`/api/groups/${groupId}`, {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) throw new Error("Failed to save settings");
+    group.value = await res.json();
+    toastSuccess("Settings saved");
+  } catch (err) {
+    toastError(err.message);
+  } finally {
+    savingSettings.value = false;
   }
 }
 

@@ -81,6 +81,7 @@ async def create_group(
         slug=slug,
         owner_id=current_user.id,
         is_public=body.is_public,
+        seat_size=body.seat_size,
     )
     session.add(group)
     await session.flush()
@@ -149,10 +150,12 @@ async def update_group(
 
     if body.name is not None:
         group.name = body.name
-    if body.description is not None:
+    if "description" in body.model_fields_set:
         group.description = body.description
     if body.is_public is not None:
         group.is_public = body.is_public
+    if "seat_size" in body.model_fields_set:
+        group.seat_size = body.seat_size
 
     await session.commit()
     await session.refresh(group)

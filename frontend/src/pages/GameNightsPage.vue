@@ -10,7 +10,7 @@
 
     <BaseAlert v-else-if="error" variant="error" :message="error" />
 
-    <div v-else-if="nights.length === 0" class="text-center py-20">
+    <div v-else-if="grouped.length === 0" class="text-center py-20">
       <CalendarDaysIcon class="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
       <p class="text-slate-500 dark:text-slate-400 mb-4">No upcoming game nights across any of your groups.</p>
       <router-link to="/groups/new" class="text-sm text-primary-600 dark:text-primary-400 hover:underline">
@@ -57,6 +57,9 @@
           </div>
 
           <div class="flex items-center gap-2 flex-shrink-0 ml-3">
+            <span :class="seqLabel(night._seqIdx, night.occurrence_date).class" class="text-xs px-2 py-0.5 rounded-full font-medium whitespace-nowrap">
+              {{ seqLabel(night._seqIdx, night.occurrence_date).text }}
+            </span>
             <RsvpBadge :rsvp="night.my_rsvp" />
           </div>
         </router-link>
@@ -76,14 +79,32 @@ const nights = ref([]);
 const loading = ref(true);
 const error = ref(null);
 
+const today = new Date();
+today.setHours(0, 0, 0, 0);
+
+function isPast(dateStr) {
+  return new Date(dateStr + "T00:00:00") < today;
+}
+
 const grouped = computed(() => {
   const map = new Map();
-  for (const night of nights.value) {
+  for (const night of nights.value.filter((n) => !isPast(n.occurrence_date))) {
     if (!map.has(night.occurrence_date)) map.set(night.occurrence_date, []);
     map.get(night.occurrence_date).push(night);
   }
-  return [...map.entries()].map(([date, items]) => ({ date, nights: items }));
+  let idx = 0;
+  return [...map.entries()].map(([date, items]) => ({
+    date,
+    nights: items.map((n) => ({ ...n, _seqIdx: idx++ })),
+  }));
 });
+
+function seqLabel(idx, dateStr) {
+  if (isPast(dateStr)) return { text: "Past", class: "bg-red-100 text-red-600 dark:bg-red-950 dark:text-red-400" };
+  if (idx === 0) return { text: "Next up", class: "bg-primary-100 text-primary-700 dark:bg-primary-950 dark:text-primary-300" };
+  if (idx === 1) return { text: "Scheduled", class: "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300" };
+  return { text: "Upcoming", class: "bg-slate-100 text-slate-500 dark:bg-slate-700 dark:text-slate-400" };
+}
 
 onMounted(async () => {
   try {
