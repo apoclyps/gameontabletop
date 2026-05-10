@@ -64,6 +64,26 @@ const routes = [
     meta: { layout: "app", requiresAuth: true, title: "Night" },
   },
   {
+    path: "/series/:id/poll/new",
+    component: () => import("../pages/PollNewPage.vue"),
+    meta: { layout: "app", requiresAuth: true, title: "New poll" },
+  },
+  {
+    path: "/polls/:id",
+    component: () => import("../pages/PollPage.vue"),
+    meta: { layout: "app", requiresAuth: true, title: "Poll" },
+  },
+  {
+    path: "/rsvp/:token",
+    component: () => import("../pages/GuestRsvpPage.vue"),
+    meta: { layout: "none", title: "RSVP" },
+  },
+  {
+    path: "/poll-respond/:token",
+    component: () => import("../pages/GuestPollPage.vue"),
+    meta: { layout: "none", title: "Poll response" },
+  },
+  {
     path: "/collection",
     component: () => import("../pages/CollectionPage.vue"),
     meta: { layout: "app", requiresAuth: true, title: "My Collection" },

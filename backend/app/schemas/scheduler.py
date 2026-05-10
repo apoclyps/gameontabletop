@@ -94,6 +94,101 @@ class OccurrenceResponse(BaseModel):
     model_config = {"from_attributes": True}
 
 
+PollStatus = Literal["open", "closed", "resolved"]
+PollResponseChoice = Literal["yes", "no", "maybe"]
+
+
+class PollOptionCreate(BaseModel):
+    proposed_date: date
+    start_time: time
+    end_time: time | None = None
+    location_id: uuid.UUID | None = None
+    display_order: int = Field(default=0, ge=0)
+
+
+class PollOptionOut(BaseModel):
+    id: uuid.UUID
+    poll_id: uuid.UUID
+    proposed_date: date
+    start_time: time
+    end_time: time | None
+    location_id: uuid.UUID | None
+    display_order: int
+    response_counts: dict[str, int] = Field(default_factory=dict)
+
+    model_config = {"from_attributes": True}
+
+
+class PollCreate(BaseModel):
+    title: str = Field(..., min_length=1, max_length=200)
+    description: str | None = None
+    deadline: datetime | None = None
+    options: list[PollOptionCreate] = Field(default_factory=list)
+
+
+class PollOut(BaseModel):
+    id: uuid.UUID
+    series_id: uuid.UUID
+    title: str
+    description: str | None
+    deadline: datetime | None
+    status: str
+    chosen_option_id: uuid.UUID | None
+    created_by: uuid.UUID
+    created_at: datetime
+    options: list[PollOptionOut] = Field(default_factory=list)
+    my_responses: dict[str, str] = Field(default_factory=dict)
+
+    model_config = {"from_attributes": True}
+
+
+class OptionResponse(BaseModel):
+    option_id: uuid.UUID
+    response: PollResponseChoice
+
+
+class PollRespond(BaseModel):
+    responses: list[OptionResponse]
+
+
+class PollResolve(BaseModel):
+    chosen_option_id: uuid.UUID
+
+
+class GuestTokenOut(BaseModel):
+    token: str
+    url: str
+    expires_at: datetime
+
+
+class GuestRsvpCreate(BaseModel):
+    guest_name: str = Field(..., min_length=1, max_length=100)
+    response: RsvpChoice
+    note: str | None = None
+
+
+class GuestPollRespond(BaseModel):
+    guest_name: str = Field(..., min_length=1, max_length=100)
+    responses: list[OptionResponse]
+
+
+class GuestContext(BaseModel):
+    type: str
+    token: str
+    guest_name: str | None = None
+    # poll fields
+    poll_id: uuid.UUID | None = None
+    poll_title: str | None = None
+    series_title: str | None = None
+    group_name: str | None = None
+    options: list[PollOptionOut] = Field(default_factory=list)
+    my_responses: dict[str, str] = Field(default_factory=dict)
+    # rsvp fields
+    occurrence_id: uuid.UUID | None = None
+    occurrence_date: date | None = None
+    occurrence_start_time: time | None = None
+
+
 class RsvpCreate(BaseModel):
     response: RsvpChoice
     note: str | None = None
@@ -102,7 +197,7 @@ class RsvpCreate(BaseModel):
 class RsvpOut(BaseModel):
     id: uuid.UUID
     occurrence_id: uuid.UUID
-    user_id: uuid.UUID
+    user_id: uuid.UUID | None
     response: str
     note: str | None
     responded_at: datetime

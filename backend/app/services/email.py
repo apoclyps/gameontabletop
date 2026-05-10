@@ -78,3 +78,27 @@ def send_occurrence_notification_email(
         <p><a href="{occurrence_url}">View details and RSVP</a></p>
         """,
     )
+
+
+def send_poll_created_email(to_email: str, group_name: str, series_title: str, poll_title: str, poll_url: str) -> None:
+    _send(
+        to_email,
+        f"Help pick a date for {series_title}",
+        f"""
+        <p>A new availability poll has been created for <strong>{group_name}</strong>.</p>
+        <p><strong>{poll_title}</strong> — vote on dates for {series_title}.</p>
+        <p><a href="{poll_url}">View poll and respond</a></p>
+        """,
+    )
+
+
+def send_poll_resolved_email(to_email: str, series_title: str, chosen_date: str, chosen_time: str, occurrence_url: str) -> None:
+    _send(
+        to_email,
+        f"{series_title} is happening on {chosen_date}",
+        f"""
+        <p>The availability poll for <strong>{series_title}</strong> has been resolved.</p>
+        <p>The session is confirmed for <strong>{chosen_date} at {chosen_time}</strong>.</p>
+        <p><a href="{occurrence_url}">View details and RSVP</a></p>
+        """,
+    )

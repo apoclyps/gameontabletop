@@ -73,6 +73,37 @@
           <span :class="occStatusClass(occ.status)" class="text-xs px-2 py-0.5 rounded-full capitalize">{{ occ.status }}</span>
         </router-link>
       </div>
+
+      <!-- Availability polls -->
+      <div class="flex justify-between items-center mt-8 mb-3">
+        <h2 class="font-semibold text-slate-700 dark:text-slate-300">Availability polls</h2>
+        <router-link v-if="isOrganiser" :to="`/series/${seriesId}/poll/new`"
+          class="text-sm text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 font-medium">
+          + New poll
+        </router-link>
+      </div>
+
+      <div v-if="polls.length === 0" class="text-sm text-slate-400 dark:text-slate-500 text-center py-10 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700">
+        No polls yet.
+        <template v-if="isOrganiser">
+          <router-link :to="`/series/${seriesId}/poll/new`" class="block mt-1 text-primary-600 dark:text-primary-400 hover:underline">Create one</router-link>
+        </template>
+      </div>
+      <div v-else class="space-y-3">
+        <router-link v-for="poll in polls" :key="poll.id" :to="`/polls/${poll.id}`"
+          class="flex justify-between items-center bg-white dark:bg-slate-800 rounded-2xl p-4 border border-slate-200 dark:border-slate-700 shadow-card hover:shadow-card-hover transition-all group">
+          <div>
+            <p class="font-medium text-slate-800 dark:text-slate-100 group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">
+              {{ poll.title }}
+            </p>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+              {{ poll.options.length }} option{{ poll.options.length !== 1 ? "s" : "" }}
+              <span v-if="poll.deadline"> · closes {{ formatDate(poll.deadline.slice(0, 10)) }}</span>
+            </p>
+          </div>
+          <span :class="pollStatusClass(poll.status)" class="text-xs px-2 py-0.5 rounded-full capitalize flex-shrink-0">{{ poll.status }}</span>
+        </router-link>
+      </div>
     </template>
   </div>
 </template>
@@ -92,6 +123,7 @@ const seriesId = route.params.id;
 
 const series = ref(null);
 const occurrences = ref([]);
+const polls = ref([]);
 const loading = ref(true);
 const error = ref(null);
 const isOrganiser = ref(false);
@@ -115,6 +147,9 @@ onMounted(async () => {
       const g = await gRes.json();
       isOrganiser.value = g.my_role === "organiser" || g.my_role === "owner";
     }
+
+    const pRes = await request(`/api/series/${seriesId}/polls`);
+    polls.value = pRes.ok ? await pRes.json() : [];
   } catch (err) {
     error.value = err.message;
   } finally {
@@ -172,5 +207,8 @@ function statusClass(s) {
 }
 function occStatusClass(s) {
   return { scheduled: "bg-primary-100 text-primary-700 dark:bg-primary-950 dark:text-primary-300", postponed: "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300", cancelled: "bg-red-100 text-red-600 dark:bg-red-950 dark:text-red-400" }[s] ?? "bg-slate-100 text-slate-500";
+}
+function pollStatusClass(s) {
+  return { open: "bg-primary-100 text-primary-700 dark:bg-primary-950 dark:text-primary-300", closed: "bg-slate-100 text-slate-500 dark:bg-slate-700 dark:text-slate-400", resolved: "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300" }[s] ?? "bg-slate-100 text-slate-500";
 }
 </script>
