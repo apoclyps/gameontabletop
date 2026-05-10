@@ -23,10 +23,33 @@
             {{ group.member_count }} {{ group.member_count === 1 ? "member" : "members" }} · {{ group.my_role }}
           </p>
         </div>
-        <BaseButton v-if="isOrganiser" @click="showInviteModal = true" variant="secondary" size="sm">
-          <LinkIcon class="w-4 h-4 mr-1.5" />Invite
-        </BaseButton>
+        <div class="flex gap-2">
+          <BaseButton v-if="isOrganiser" @click="showInviteModal = true" variant="secondary" size="sm">
+            <LinkIcon class="w-4 h-4 mr-1.5" />Invite
+          </BaseButton>
+          <BaseButton v-if="isOwner" @click="showDeleteModal = true" variant="danger" size="sm">
+            Delete
+          </BaseButton>
+        </div>
       </div>
+
+      <!-- Delete confirmation modal -->
+      <Teleport to="body">
+        <Transition enter-active-class="transition-opacity duration-150" enter-from-class="opacity-0" enter-to-class="opacity-100" leave-active-class="transition-opacity duration-100" leave-from-class="opacity-100" leave-to-class="opacity-0">
+          <div v-if="showDeleteModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+            <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-xl p-6 max-w-sm w-full border border-slate-200 dark:border-slate-700">
+              <h3 class="font-semibold text-slate-900 dark:text-white mb-2">Delete group?</h3>
+              <p class="text-sm text-slate-500 dark:text-slate-400 mb-6">
+                <strong class="text-slate-700 dark:text-slate-200">{{ group.name }}</strong> and all its game nights will be permanently deleted. This cannot be undone.
+              </p>
+              <div class="flex gap-3">
+                <BaseButton @click="deleteGroup" variant="danger" :loading="deleting" class="flex-1">Delete</BaseButton>
+                <BaseButton @click="showDeleteModal = false" variant="secondary" class="flex-1">Cancel</BaseButton>
+              </div>
+            </div>
+          </div>
+        </Transition>
+      </Teleport>
 
       <!-- Invite modal -->
       <Teleport to="body">
@@ -125,18 +148,21 @@
 <script setup>
 import { computed, onMounted, ref } from "vue";
 import { LinkIcon } from "@heroicons/vue/24/outline";
-import { useRoute } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 import BaseAlert from "../components/ui/BaseAlert.vue";
 import BaseAvatar from "../components/ui/BaseAvatar.vue";
 import BaseButton from "../components/ui/BaseButton.vue";
 import BaseCard from "../components/ui/BaseCard.vue";
 import SkeletonLoader from "../components/ui/SkeletonLoader.vue";
+import { useCurrentUser } from "../composables/useCurrentUser.js";
 import { useToast } from "../composables/useToast.js";
 import { request } from "../services/api.js";
 
 const { success: toastSuccess, error: toastError } = useToast();
+const { user: currentUser } = useCurrentUser();
 
 const route = useRoute();
+const router = useRouter();
 const groupId = route.params.id;
 
 const group = ref(null);
@@ -149,8 +175,11 @@ const inviteLink = ref(null);
 const creatingInvite = ref(false);
 const copied = ref(false);
 const savingPublic = ref(false);
+const showDeleteModal = ref(false);
+const deleting = ref(false);
 
 const isOrganiser = computed(() => group.value?.my_role === "organiser" || group.value?.my_role === "owner");
+const isOwner = computed(() => !!group.value && !!currentUser.value && group.value.owner_id === currentUser.value.id);
 
 onMounted(async () => {
   try {
@@ -195,6 +224,20 @@ function closeInviteModal() {
   showInviteModal.value = false;
   inviteLink.value = null;
   copied.value = false;
+}
+
+async function deleteGroup() {
+  deleting.value = true;
+  try {
+    const res = await request(`/api/groups/${groupId}`, { method: "DELETE" });
+    if (!res.ok) throw new Error("Failed to delete group");
+    router.push("/dashboard");
+  } catch (err) {
+    toastError(err.message);
+    showDeleteModal.value = false;
+  } finally {
+    deleting.value = false;
+  }
 }
 
 async function togglePublic() {
