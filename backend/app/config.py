@@ -19,6 +19,9 @@ class Settings(BaseSettings):
     supabase_url: str = ""
     supabase_anon_key: str = ""
 
+    bgg_username: str = ""
+    bgg_password: str = ""
+
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
     def get_cors_origins(self) -> list[str]:

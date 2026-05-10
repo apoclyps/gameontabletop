@@ -5,10 +5,29 @@ from xml.etree import ElementTree
 import httpx
 from fastapi import APIRouter, HTTPException
 
+from app.config import settings
+
 router = APIRouter(prefix="/bgg", tags=["bgg"])
 
 _game_cache: dict[int, tuple[float, dict]] = {}
 _CACHE_TTL = 3600
+
+# Module-level session cookie cache (warm between requests in same instance)
+_bgg_cookies: dict[str, str] = {}
+
+
+async def _authenticate() -> dict[str, str]:
+    global _bgg_cookies
+    if not settings.bgg_username or not settings.bgg_password:
+        return {}
+    async with httpx.AsyncClient(timeout=10) as client:
+        resp = await client.post(
+            "https://boardgamegeek.com/login/api/v1",
+            json={"credentials": {"username": settings.bgg_username, "password": settings.bgg_password}},
+        )
+    if resp.status_code == 200:
+        _bgg_cookies = dict(resp.cookies)
+    return _bgg_cookies
 
 
 def _int(s: str | None) -> int | None:
@@ -76,9 +95,13 @@ def _parse_game(item) -> dict:
 
 
 async def _fetch_xml(url: str) -> str:
+    global _bgg_cookies
+    if not _bgg_cookies:
+        await _authenticate()
+
     async with httpx.AsyncClient(timeout=15, follow_redirects=True) as client:
         for attempt in range(4):
-            resp = await client.get(url)
+            resp = await client.get(url, cookies=_bgg_cookies)
             if resp.status_code == 200:
                 return resp.text
             if resp.status_code == 202:
@@ -86,6 +109,13 @@ async def _fetch_xml(url: str) -> str:
                 continue
             if resp.status_code == 429:
                 await asyncio.sleep(5)
+                continue
+            if resp.status_code == 401:
+                # Session expired — re-authenticate once then retry
+                _bgg_cookies = {}
+                await _authenticate()
+                if not _bgg_cookies:
+                    raise HTTPException(status_code=502, detail="BGG authentication failed")
                 continue
             raise HTTPException(status_code=502, detail=f"BGG API returned {resp.status_code}")
     raise HTTPException(status_code=504, detail="BGG API timed out")
