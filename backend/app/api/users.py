@@ -16,12 +16,25 @@ _ALLOWED_TYPES = {"image/jpeg", "image/png", "image/webp"}
 _MAX_BYTES = 2 * 1024 * 1024  # 2 MB
 
 
-@router.get("/me", response_model=UserResponse)
+@router.get(
+    "/me",
+    response_model=UserResponse,
+    summary="Get the authenticated user's profile",
+    responses={401: {"description": "Unauthorized"}},
+)
 async def get_profile(current_user: User = Depends(get_current_user)):
     return current_user
 
 
-@router.patch("/me", response_model=UserResponse)
+@router.patch(
+    "/me",
+    response_model=UserResponse,
+    summary="Update the authenticated user's profile",
+    responses={
+        401: {"description": "Unauthorized"},
+        422: {"description": "Validation error"},
+    },
+)
 async def update_profile(
     body: UpdateProfileRequest,
     current_user: User = Depends(get_current_user),
@@ -42,7 +55,16 @@ async def update_profile(
     return current_user
 
 
-@router.post("/me/avatar", response_model=UserResponse)
+@router.post(
+    "/me/avatar",
+    response_model=UserResponse,
+    summary="Upload or replace the authenticated user's avatar image",
+    responses={
+        400: {"description": "Invalid file type or file too large"},
+        401: {"description": "Unauthorized"},
+        502: {"description": "Storage upload failed or not configured"},
+    },
+)
 async def upload_avatar(
     file: UploadFile = File(...),
     current_user: User = Depends(get_current_user),

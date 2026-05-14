@@ -1,0 +1,4560 @@
+openapi: 3.1.0
+info:
+  title: Game On Tabletop API
+  description: REST API for Game On Tabletop — a platform for organising tabletop
+    game nights, tracking game collections, scheduling events, and managing group
+    RSVPs.
+  version: 1.0.0
+paths:
+  /api/auth/register:
+    post:
+      tags:
+      - auth
+      summary: Register a new account
+      operationId: register_api_auth_register_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+        required: true
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+        '409':
+          description: Email or username already registered
+        '422':
+          description: Validation error
+  /api/auth/login:
+    post:
+      tags:
+      - auth
+      summary: Log in and obtain JWT tokens
+      operationId: login_api_auth_login_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+        '401':
+          description: Invalid credentials
+        '403':
+          description: Email not verified or account disabled
+        '422':
+          description: Validation error
+  /api/auth/logout:
+    post:
+      tags:
+      - auth
+      summary: Log out (client-side token discard)
+      operationId: logout_api_auth_logout_post
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+  /api/auth/refresh:
+    post:
+      tags:
+      - auth
+      summary: Refresh access token using a refresh token
+      operationId: refresh_api_auth_refresh_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+        '401':
+          description: Invalid or expired refresh token
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/auth/verify-email:
+    get:
+      tags:
+      - auth
+      summary: Verify email address via token from confirmation email
+      operationId: verify_email_api_auth_verify_email_get
+      parameters:
+      - name: token
+        in: query
+        required: true
+        schema:
+          type: string
+          title: Token
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+        '400':
+          description: Invalid or expired verification token
+        '404':
+          description: User not found
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/auth/forgot-password:
+    post:
+      tags:
+      - auth
+      summary: Request a password reset email
+      description: Always returns 200 to prevent email enumeration. A reset link is
+        sent only if the address is registered.
+      operationId: forgot_password_api_auth_forgot_password_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ForgotPasswordRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/auth/reset-password:
+    post:
+      tags:
+      - auth
+      summary: Reset password using a reset token
+      operationId: reset_password_api_auth_reset_password_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResetPasswordRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+        '400':
+          description: Invalid or expired reset token
+        '404':
+          description: User not found
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/bgg/games:
+    get:
+      tags:
+      - bgg
+      summary: Fetch BGG game details by comma-separated IDs (max 50)
+      operationId: get_bgg_games_api_bgg_games_get
+      parameters:
+      - name: ids
+        in: query
+        required: true
+        schema:
+          type: string
+          title: Ids
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  $ref: '#/components/schemas/BGGGameResponse'
+                title: Response Get Bgg Games Api Bgg Games Get
+        '400':
+          description: Invalid or missing IDs
+        '502':
+          description: BGG API error
+        '503':
+          description: BGG token not configured
+        '504':
+          description: BGG API timed out
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/bgg/search:
+    get:
+      tags:
+      - bgg
+      summary: Search BGG for board games by title
+      operationId: search_bgg_api_bgg_search_get
+      parameters:
+      - name: q
+        in: query
+        required: true
+        schema:
+          type: string
+          title: Q
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/BGGSearchResult'
+                title: Response Search Bgg Api Bgg Search Get
+        '400':
+          description: Query too short
+        '502':
+          description: BGG API error
+        '503':
+          description: BGG token not configured
+        '504':
+          description: BGG API timed out
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/users/me:
+    get:
+      tags:
+      - users
+      summary: Get the authenticated user's profile
+      operationId: get_profile_api_users_me_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '401':
+          description: Unauthorized
+      security:
+      - HTTPBearer: []
+    patch:
+      tags:
+      - users
+      summary: Update the authenticated user's profile
+      operationId: update_profile_api_users_me_patch
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateProfileRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '401':
+          description: Unauthorized
+        '422':
+          description: Validation error
+      security:
+      - HTTPBearer: []
+  /api/users/me/avatar:
+    post:
+      tags:
+      - users
+      summary: Upload or replace the authenticated user's avatar image
+      operationId: upload_avatar_api_users_me_avatar_post
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Body_upload_avatar_api_users_me_avatar_post'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '400':
+          description: Invalid file type or file too large
+        '401':
+          description: Unauthorized
+        '502':
+          description: Storage upload failed or not configured
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+      security:
+      - HTTPBearer: []
+  /api/groups:
+    get:
+      tags:
+      - groups
+      summary: List groups the authenticated user belongs to
+      operationId: list_groups_api_groups_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/GroupResponse'
+                type: array
+                title: Response List Groups Api Groups Get
+        '401':
+          description: Unauthorized
+      security:
+      - HTTPBearer: []
+    post:
+      tags:
+      - groups
+      summary: Create a new group
+      operationId: create_group_api_groups_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GroupCreate'
+        required: true
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GroupResponse'
+        '401':
+          description: Unauthorized
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+      security:
+      - HTTPBearer: []
+  /api/groups/{group_id}:
+    get:
+      tags:
+      - groups
+      summary: Get a group by ID
+      operationId: get_group_api_groups__group_id__get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: group_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Group Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GroupResponse'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Not a member of this group
+        '404':
+          description: Group not found
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    patch:
+      tags:
+      - groups
+      summary: Update group settings (organiser only)
+      operationId: update_group_api_groups__group_id__patch
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: group_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Group Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GroupUpdate'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GroupResponse'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Not a member or not an organiser
+        '404':
+          description: Group not found
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    delete:
+      tags:
+      - groups
+      summary: Delete a group (owner only)
+      operationId: delete_group_api_groups__group_id__delete
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: group_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Group Id
+      responses:
+        '204':
+          description: Successful Response
+        '401':
+          description: Unauthorized
+        '403':
+          description: Not the owner
+        '404':
+          description: Group not found
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/groups/{group_id}/members:
+    get:
+      tags:
+      - groups
+      summary: List members of a group
+      operationId: list_members_api_groups__group_id__members_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: group_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Group Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/MemberResponse'
+                title: Response List Members Api Groups  Group Id  Members Get
+        '401':
+          description: Unauthorized
+        '403':
+          description: Not a member of this group
+        '404':
+          description: Group not found
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/groups/{group_id}/members/{user_id}:
+    delete:
+      tags:
+      - groups
+      summary: Remove a member from a group (organiser only)
+      operationId: remove_member_api_groups__group_id__members__user_id__delete
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: group_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Group Id
+      - name: user_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: User Id
+      responses:
+        '204':
+          description: Successful Response
+        '401':
+          description: Unauthorized
+        '403':
+          description: Not an organiser
+        '404':
+          description: Member not found
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/groups/{group_id}/invites:
+    post:
+      tags:
+      - groups
+      summary: Create a group invite link (organiser only)
+      operationId: create_invite_api_groups__group_id__invites_post
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: group_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Group Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InviteCreate'
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InviteResponse'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Not an organiser
+        '404':
+          description: Group not found
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    get:
+      tags:
+      - groups
+      summary: List active invite links for a group (organiser only)
+      operationId: list_invites_api_groups__group_id__invites_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: group_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Group Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/InviteResponse'
+                title: Response List Invites Api Groups  Group Id  Invites Get
+        '401':
+          description: Unauthorized
+        '403':
+          description: Not an organiser
+        '404':
+          description: Group not found
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/invites/{token}:
+    get:
+      tags:
+      - groups
+      summary: Preview a group invite before accepting
+      operationId: preview_invite_api_invites__token__get
+      parameters:
+      - name: token
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Token
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InvitePreview'
+        '404':
+          description: Invite not found or expired
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/invites/{token}/accept:
+    post:
+      tags:
+      - groups
+      summary: Accept a group invite and join the group
+      operationId: accept_invite_api_invites__token__accept_post
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: token
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Token
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AcceptInviteResponse'
+        '401':
+          description: Unauthorized
+        '404':
+          description: Invite not found or expired
+        '410':
+          description: Invite already used
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/groups/{group_id}/locations:
+    get:
+      tags:
+      - locations
+      summary: List locations for a group
+      operationId: list_locations_api_groups__group_id__locations_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: group_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Group Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/LocationResponse'
+                title: Response List Locations Api Groups  Group Id  Locations Get
+        '401':
+          description: Unauthorized
+        '403':
+          description: Not a member of this group
+        '404':
+          description: Group not found
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    post:
+      tags:
+      - locations
+      summary: Create a location for a group (organiser only)
+      operationId: create_location_api_groups__group_id__locations_post
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: group_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Group Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LocationCreate'
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LocationResponse'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Not an organiser
+        '404':
+          description: Group not found
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/locations/{location_id}:
+    patch:
+      tags:
+      - locations
+      summary: Update a location (organiser only)
+      operationId: update_location_api_locations__location_id__patch
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: location_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Location Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LocationUpdate'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LocationResponse'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Not an organiser
+        '404':
+          description: Location not found
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    delete:
+      tags:
+      - locations
+      summary: Delete a location (organiser only)
+      operationId: delete_location_api_locations__location_id__delete
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: location_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Location Id
+      responses:
+        '204':
+          description: Successful Response
+        '401':
+          description: Unauthorized
+        '403':
+          description: Not an organiser
+        '404':
+          description: Location not found
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/groups/{group_id}/series:
+    post:
+      tags:
+      - series
+      summary: Create a recurring game night series for a group (organiser only)
+      operationId: create_series_api_groups__group_id__series_post
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: group_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Group Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SeriesCreate'
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SeriesResponse'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Not an organiser
+        '404':
+          description: Group not found
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    get:
+      tags:
+      - series
+      summary: List series for a group
+      operationId: list_series_api_groups__group_id__series_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: group_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Group Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SeriesResponse'
+                title: Response List Series Api Groups  Group Id  Series Get
+        '401':
+          description: Unauthorized
+        '403':
+          description: Not a member
+        '404':
+          description: Group not found
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/series/{series_id}:
+    get:
+      tags:
+      - series
+      summary: Get a series by ID
+      operationId: get_series_api_series__series_id__get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: series_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Series Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SeriesResponse'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Not a member
+        '404':
+          description: Series not found
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    patch:
+      tags:
+      - series
+      summary: Update a series (organiser only)
+      operationId: update_series_api_series__series_id__patch
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: series_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Series Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SeriesUpdate'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SeriesResponse'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Not an organiser
+        '404':
+          description: Series not found
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/series/{series_id}/occurrences:
+    get:
+      tags:
+      - series
+      summary: List occurrences for a series
+      operationId: list_occurrences_api_series__series_id__occurrences_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: series_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Series Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/OccurrenceResponse'
+                title: Response List Occurrences Api Series  Series Id  Occurrences
+                  Get
+        '401':
+          description: Unauthorized
+        '403':
+          description: Not a member
+        '404':
+          description: Series not found
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    post:
+      tags:
+      - occurrences
+      summary: Create a one-off occurrence for a series (organiser only)
+      operationId: create_occurrence_api_series__series_id__occurrences_post
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: series_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Series Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OccurrenceCreate'
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OccurrenceResponse'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Not an organiser
+        '404':
+          description: Series not found
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/me/occurrences:
+    get:
+      tags:
+      - occurrences
+      summary: List upcoming (or past) occurrences across all the user's groups
+      operationId: list_my_occurrences_api_me_occurrences_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: past
+        in: query
+        required: false
+        schema:
+          type: boolean
+          default: false
+          title: Past
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/MyOccurrenceItem'
+                title: Response List My Occurrences Api Me Occurrences Get
+        '401':
+          description: Unauthorized
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/occurrences/{occurrence_id}:
+    get:
+      tags:
+      - occurrences
+      summary: Get a single occurrence with RSVP counts
+      operationId: get_occurrence_api_occurrences__occurrence_id__get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: occurrence_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Occurrence Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OccurrenceResponse'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Not a member of this group
+        '404':
+          description: Occurrence not found
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    patch:
+      tags:
+      - occurrences
+      summary: Update an occurrence (organiser only)
+      operationId: update_occurrence_api_occurrences__occurrence_id__patch
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: occurrence_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Occurrence Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OccurrenceUpdate'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OccurrenceResponse'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Not an organiser
+        '404':
+          description: Occurrence not found
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/occurrences/{occurrence_id}/rsvp:
+    post:
+      tags:
+      - occurrences
+      summary: Submit or update an RSVP for an occurrence
+      operationId: upsert_rsvp_api_occurrences__occurrence_id__rsvp_post
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: occurrence_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Occurrence Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RsvpCreate'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RsvpOut'
+        '400':
+          description: Cannot RSVP to a cancelled occurrence
+        '401':
+          description: Unauthorized
+        '403':
+          description: Not a member of this group
+        '404':
+          description: Occurrence not found
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/occurrences/{occurrence_id}/rsvps:
+    get:
+      tags:
+      - occurrences
+      summary: List RSVPs for an occurrence
+      operationId: list_rsvps_api_occurrences__occurrence_id__rsvps_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: occurrence_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Occurrence Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/RsvpOut'
+                title: Response List Rsvps Api Occurrences  Occurrence Id  Rsvps Get
+        '401':
+          description: Unauthorized
+        '403':
+          description: Not a member of this group
+        '404':
+          description: Occurrence not found
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/occurrences/{occurrence_id}/photos:
+    get:
+      tags:
+      - occurrences
+      summary: List photos uploaded to an occurrence
+      operationId: list_photos_api_occurrences__occurrence_id__photos_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: occurrence_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Occurrence Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/OccurrencePhotoOut'
+                title: Response List Photos Api Occurrences  Occurrence Id  Photos
+                  Get
+        '401':
+          description: Unauthorized
+        '403':
+          description: Not a member of this group
+        '404':
+          description: Occurrence not found
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    post:
+      tags:
+      - occurrences
+      summary: Upload a photo to an occurrence
+      operationId: upload_photo_api_occurrences__occurrence_id__photos_post
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: occurrence_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Occurrence Id
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Body_upload_photo_api_occurrences__occurrence_id__photos_post'
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OccurrencePhotoOut'
+        '400':
+          description: Invalid file type or file too large
+        '401':
+          description: Unauthorized
+        '403':
+          description: Not a member of this group
+        '404':
+          description: Occurrence not found
+        '502':
+          description: Storage upload failed or not configured
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/occurrences/{occurrence_id}/photos/{photo_id}:
+    delete:
+      tags:
+      - occurrences
+      summary: Delete a photo from an occurrence (uploader or organiser only)
+      operationId: delete_photo_api_occurrences__occurrence_id__photos__photo_id__delete
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: occurrence_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Occurrence Id
+      - name: photo_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Photo Id
+      responses:
+        '204':
+          description: Successful Response
+        '401':
+          description: Unauthorized
+        '403':
+          description: Cannot delete this photo
+        '404':
+          description: Photo not found
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/users/me/collection:
+    get:
+      tags:
+      - collection
+      summary: List the authenticated user's game collection
+      operationId: list_my_collection_api_users_me_collection_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: status
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Status
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CollectionEntryResponse'
+                title: Response List My Collection Api Users Me Collection Get
+        '401':
+          description: Unauthorized
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    post:
+      tags:
+      - collection
+      summary: Add a game to the authenticated user's collection
+      operationId: add_to_collection_api_users_me_collection_post
+      security:
+      - HTTPBearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CollectionEntryCreate'
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CollectionEntryResponse'
+        '401':
+          description: Unauthorized
+        '409':
+          description: Game with this BGG ID already in collection
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/users/me/collection/{entry_id}:
+    patch:
+      tags:
+      - collection
+      summary: Update a collection entry
+      operationId: update_collection_entry_api_users_me_collection__entry_id__patch
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: entry_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Entry Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CollectionEntryUpdate'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CollectionEntryResponse'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Not your collection entry
+        '404':
+          description: Collection entry not found
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    delete:
+      tags:
+      - collection
+      summary: Remove a game from the authenticated user's collection
+      operationId: delete_collection_entry_api_users_me_collection__entry_id__delete
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: entry_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Entry Id
+      responses:
+        '204':
+          description: Successful Response
+        '401':
+          description: Unauthorized
+        '403':
+          description: Not your collection entry
+        '404':
+          description: Collection entry not found
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/users/{user_id}/profile:
+    get:
+      tags:
+      - collection
+      summary: Get a user's public profile by ID
+      operationId: get_user_profile_api_users__user_id__profile_get
+      parameters:
+      - name: user_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: User Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserPublicProfileResponse'
+        '404':
+          description: User not found
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/users/{user_id}/collection:
+    get:
+      tags:
+      - collection
+      summary: Get a user's game collection (visibility-filtered)
+      operationId: get_user_collection_api_users__user_id__collection_get
+      parameters:
+      - name: user_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: User Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CollectionEntryResponse'
+                title: Response Get User Collection Api Users  User Id  Collection
+                  Get
+        '401':
+          description: Unauthorized
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/friends:
+    get:
+      tags:
+      - friends
+      summary: List accepted friends
+      operationId: list_friends_api_friends_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/FriendResponse'
+                type: array
+                title: Response List Friends Api Friends Get
+        '401':
+          description: Unauthorized
+      security:
+      - HTTPBearer: []
+  /api/friends/request:
+    post:
+      tags:
+      - friends
+      summary: Send a friend request by username
+      operationId: send_friend_request_api_friends_request_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FriendRequestCreate'
+        required: true
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FriendRequestResponse'
+        '400':
+          description: Cannot send request (user not found, self-request, or blocked)
+        '401':
+          description: Unauthorized
+        '409':
+          description: Friend request already pending
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+      security:
+      - HTTPBearer: []
+  /api/friends/requests:
+    get:
+      tags:
+      - friends
+      summary: List pending incoming friend requests
+      operationId: list_friend_requests_api_friends_requests_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/FriendResponse'
+                type: array
+                title: Response List Friend Requests Api Friends Requests Get
+        '401':
+          description: Unauthorized
+      security:
+      - HTTPBearer: []
+  /api/friends/invite:
+    post:
+      tags:
+      - friends
+      summary: Create a shareable friend invite link
+      operationId: create_friend_invite_api_friends_invite_post
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FriendInviteResponse'
+        '401':
+          description: Unauthorized
+      security:
+      - HTTPBearer: []
+  /api/friends/invite/{token}:
+    get:
+      tags:
+      - friends
+      summary: Preview a friend invite link before accepting
+      operationId: preview_friend_invite_api_friends_invite__token__get
+      parameters:
+      - name: token
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Token
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FriendInvitePreview'
+        '404':
+          description: Invite not found or expired
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/friends/invite/{token}/accept:
+    post:
+      tags:
+      - friends
+      summary: Accept a friend invite link
+      operationId: accept_friend_invite_api_friends_invite__token__accept_post
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: token
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Token
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+        '400':
+          description: Cannot connect (self-invite or blocked)
+        '401':
+          description: Unauthorized
+        '404':
+          description: Invite not found or expired
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/friends/{friendship_id}:
+    patch:
+      tags:
+      - friends
+      summary: Accept, decline, or block a friendship
+      operationId: patch_friendship_api_friends__friendship_id__patch
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: friendship_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Friendship Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FriendshipPatch'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FriendResponse'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Not part of this friendship or wrong role
+        '404':
+          description: Friendship not found
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    delete:
+      tags:
+      - friends
+      summary: Remove a friendship
+      operationId: delete_friendship_api_friends__friendship_id__delete
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: friendship_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Friendship Id
+      responses:
+        '204':
+          description: Successful Response
+        '401':
+          description: Unauthorized
+        '403':
+          description: Not part of this friendship
+        '404':
+          description: Friendship not found
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/friends/collection:
+    get:
+      tags:
+      - friends
+      summary: Get games owned by friends (filterable by player count)
+      operationId: friends_collection_api_friends_collection_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: status
+        in: query
+        required: false
+        schema:
+          type: string
+          default: own
+          title: Status
+      - name: q
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Q
+      - name: min_players
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Min Players
+      - name: max_players
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Max Players
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/FriendGameEntry'
+                title: Response Friends Collection Api Friends Collection Get
+        '401':
+          description: Unauthorized
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/friends/suggestions:
+    get:
+      tags:
+      - friends
+      summary: Suggest people to add as friends based on shared groups
+      operationId: friend_suggestions_api_friends_suggestions_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                items:
+                  additionalProperties: true
+                  type: object
+                type: array
+                title: Response Friend Suggestions Api Friends Suggestions Get
+        '401':
+          description: Unauthorized
+      security:
+      - HTTPBearer: []
+  /api/series/{series_id}/polls:
+    post:
+      tags:
+      - polls
+      summary: Create an availability poll for a series (organiser only)
+      operationId: create_poll_api_series__series_id__polls_post
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: series_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Series Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PollCreate'
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PollOut'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Not an organiser
+        '404':
+          description: Series not found
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    get:
+      tags:
+      - polls
+      summary: List polls for a series
+      operationId: list_polls_api_series__series_id__polls_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: series_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Series Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PollOut'
+                title: Response List Polls Api Series  Series Id  Polls Get
+        '401':
+          description: Unauthorized
+        '403':
+          description: Not a member
+        '404':
+          description: Series not found
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/polls/{poll_id}:
+    get:
+      tags:
+      - polls
+      summary: Get a poll with options and response counts
+      operationId: get_poll_api_polls__poll_id__get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: poll_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Poll Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PollOut'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Not a member
+        '404':
+          description: Poll not found
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/polls/{poll_id}/options:
+    post:
+      tags:
+      - polls
+      summary: Add a date option to a poll (organiser only)
+      operationId: add_poll_option_api_polls__poll_id__options_post
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: poll_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Poll Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PollOptionCreate'
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PollOptionOut'
+        '400':
+          description: Poll is not open
+        '401':
+          description: Unauthorized
+        '403':
+          description: Not an organiser
+        '404':
+          description: Poll not found
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/polls/{poll_id}/options/{option_id}:
+    delete:
+      tags:
+      - polls
+      summary: Remove a date option from a poll (organiser only)
+      operationId: remove_poll_option_api_polls__poll_id__options__option_id__delete
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: poll_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Poll Id
+      - name: option_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Option Id
+      responses:
+        '204':
+          description: Successful Response
+        '400':
+          description: Poll is not open
+        '401':
+          description: Unauthorized
+        '403':
+          description: Not an organiser
+        '404':
+          description: Poll or option not found
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/polls/{poll_id}/respond:
+    post:
+      tags:
+      - polls
+      summary: Submit or update availability responses for a poll
+      operationId: respond_to_poll_api_polls__poll_id__respond_post
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: poll_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Poll Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PollRespond'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PollOut'
+        '400':
+          description: Poll is not open
+        '401':
+          description: Unauthorized
+        '403':
+          description: Not a member
+        '404':
+          description: Poll not found
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/polls/{poll_id}/resolve:
+    post:
+      tags:
+      - polls
+      summary: Resolve a poll by picking the winning date and creating an occurrence
+        (organiser only)
+      operationId: resolve_poll_api_polls__poll_id__resolve_post
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: poll_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Poll Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PollResolve'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PollOut'
+        '400':
+          description: Poll already resolved or invalid option
+        '401':
+          description: Unauthorized
+        '403':
+          description: Not an organiser
+        '404':
+          description: Poll not found
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/polls/{poll_id}/guest-link:
+    post:
+      tags:
+      - polls
+      summary: Create a guest link for unauthenticated poll responses (organiser only)
+      operationId: create_poll_guest_link_api_polls__poll_id__guest_link_post
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: poll_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Poll Id
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GuestTokenOut'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Not an organiser
+        '404':
+          description: Poll not found
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/occurrences/{occurrence_id}/guest-link:
+    post:
+      tags:
+      - polls
+      summary: Create a guest RSVP link for an occurrence (organiser only)
+      operationId: create_occurrence_guest_link_api_occurrences__occurrence_id__guest_link_post
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: occurrence_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Occurrence Id
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GuestTokenOut'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Not an organiser
+        '404':
+          description: Occurrence not found
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/guest/{token}:
+    get:
+      tags:
+      - guest
+      summary: Resolve a guest token and return context (poll or RSVP)
+      operationId: resolve_guest_token_api_guest__token__get
+      parameters:
+      - name: token
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Token
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GuestContext'
+        '400':
+          description: Invalid guest token scope
+        '404':
+          description: Guest link not found
+        '410':
+          description: Guest link has expired
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/guest/{token}/rsvp:
+    post:
+      tags:
+      - guest
+      summary: Submit or update a guest RSVP
+      operationId: guest_rsvp_api_guest__token__rsvp_post
+      parameters:
+      - name: token
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GuestRsvpCreate'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RsvpOut'
+        '400':
+          description: Token is not for an RSVP or occurrence is cancelled
+        '404':
+          description: Guest link not found
+        '410':
+          description: Guest link has expired
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/guest/{token}/poll:
+    post:
+      tags:
+      - guest
+      summary: Submit or update a guest poll response
+      operationId: guest_poll_respond_api_guest__token__poll_post
+      parameters:
+      - name: token
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GuestPollRespond'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+        '400':
+          description: Token is not for a poll or poll is not open
+        '404':
+          description: Guest link not found
+        '410':
+          description: Guest link has expired
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/public/events:
+    get:
+      tags:
+      - public
+      summary: List upcoming public game night events (paginated)
+      operationId: list_public_events_api_public_events_get
+      parameters:
+      - name: page
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          default: 1
+          title: Page
+      - name: per_page
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 100
+          minimum: 1
+          default: 20
+          title: Per Page
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PublicEventItem'
+                title: Response List Public Events Api Public Events Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/public/events/{occurrence_id}:
+    get:
+      tags:
+      - public
+      summary: Get details of a single public event
+      operationId: get_public_event_api_public_events__occurrence_id__get
+      parameters:
+      - name: occurrence_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Occurrence Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublicEventDetail'
+        '404':
+          description: Event not found or not public
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/public/profile/{username}:
+    get:
+      tags:
+      - public
+      summary: Get a user's public profile by username
+      operationId: get_public_profile_api_public_profile__username__get
+      parameters:
+      - name: username
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Username
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublicProfileResponse'
+        '404':
+          description: Profile not found or not public
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/health:
+    get:
+      tags:
+      - health
+      summary: Health check
+      operationId: health_api_health_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+components:
+  schemas:
+    AcceptInviteResponse:
+      properties:
+        message:
+          type: string
+          title: Message
+        role:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Role
+      type: object
+      required:
+      - message
+      title: AcceptInviteResponse
+    BGGGameResponse:
+      properties:
+        bgg_id:
+          type: integer
+          title: Bgg Id
+        title:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Title
+        thumbnail:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Thumbnail
+        image:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Image
+        year_published:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Year Published
+        min_players:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Min Players
+        max_players:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Max Players
+        min_playtime:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Min Playtime
+        max_playtime:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Max Playtime
+        min_age:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Min Age
+        average_rating:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Average Rating
+        complexity:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Complexity
+        users_rated:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Users Rated
+        categories:
+          items:
+            type: string
+          type: array
+          title: Categories
+        mechanics:
+          items:
+            type: string
+          type: array
+          title: Mechanics
+      type: object
+      required:
+      - bgg_id
+      - title
+      - thumbnail
+      - image
+      - year_published
+      - min_players
+      - max_players
+      - min_playtime
+      - max_playtime
+      - min_age
+      - average_rating
+      - complexity
+      - users_rated
+      - categories
+      - mechanics
+      title: BGGGameResponse
+    BGGSearchResult:
+      properties:
+        bgg_id:
+          type: integer
+          title: Bgg Id
+        title:
+          type: string
+          title: Title
+        year_published:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Year Published
+      type: object
+      required:
+      - bgg_id
+      - title
+      - year_published
+      title: BGGSearchResult
+    Body_upload_avatar_api_users_me_avatar_post:
+      properties:
+        file:
+          type: string
+          contentMediaType: application/octet-stream
+          title: File
+      type: object
+      required:
+      - file
+      title: Body_upload_avatar_api_users_me_avatar_post
+    Body_upload_photo_api_occurrences__occurrence_id__photos_post:
+      properties:
+        file:
+          type: string
+          contentMediaType: application/octet-stream
+          title: File
+      type: object
+      required:
+      - file
+      title: Body_upload_photo_api_occurrences__occurrence_id__photos_post
+    CollectionEntryCreate:
+      properties:
+        game_title:
+          type: string
+          title: Game Title
+        bgg_game_id:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Bgg Game Id
+        game_thumbnail_url:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Game Thumbnail Url
+        min_players:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Min Players
+        max_players:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Max Players
+        complexity:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Complexity
+        status:
+          type: string
+          enum:
+          - own
+          - wishlist
+          - want_to_play
+          - previously_owned
+          title: Status
+          default: own
+        notes:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Notes
+        acquired_at:
+          anyOf:
+          - type: string
+            format: date
+          - type: 'null'
+          title: Acquired At
+        collection_visible_to:
+          type: string
+          enum:
+          - public
+          - friends
+          - private
+          title: Collection Visible To
+          default: friends
+      type: object
+      required:
+      - game_title
+      title: CollectionEntryCreate
+    CollectionEntryResponse:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        user_id:
+          type: string
+          format: uuid
+          title: User Id
+        bgg_game_id:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Bgg Game Id
+        game_title:
+          type: string
+          title: Game Title
+        game_thumbnail_url:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Game Thumbnail Url
+        min_players:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Min Players
+        max_players:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Max Players
+        complexity:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Complexity
+        status:
+          type: string
+          title: Status
+        notes:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Notes
+        source:
+          type: string
+          title: Source
+        acquired_at:
+          anyOf:
+          - type: string
+            format: date
+          - type: 'null'
+          title: Acquired At
+        collection_visible_to:
+          type: string
+          title: Collection Visible To
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+        updated_at:
+          type: string
+          format: date-time
+          title: Updated At
+      type: object
+      required:
+      - id
+      - user_id
+      - bgg_game_id
+      - game_title
+      - game_thumbnail_url
+      - min_players
+      - max_players
+      - complexity
+      - status
+      - notes
+      - source
+      - acquired_at
+      - collection_visible_to
+      - created_at
+      - updated_at
+      title: CollectionEntryResponse
+    CollectionEntryUpdate:
+      properties:
+        status:
+          anyOf:
+          - type: string
+            enum:
+            - own
+            - wishlist
+            - want_to_play
+            - previously_owned
+          - type: 'null'
+          title: Status
+        notes:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Notes
+        collection_visible_to:
+          anyOf:
+          - type: string
+            enum:
+            - public
+            - friends
+            - private
+          - type: 'null'
+          title: Collection Visible To
+        acquired_at:
+          anyOf:
+          - type: string
+            format: date
+          - type: 'null'
+          title: Acquired At
+      type: object
+      title: CollectionEntryUpdate
+    ForgotPasswordRequest:
+      properties:
+        email:
+          type: string
+          format: email
+          title: Email
+      type: object
+      required:
+      - email
+      title: ForgotPasswordRequest
+    FriendGameEntry:
+      properties:
+        bgg_game_id:
+          type: integer
+          title: Bgg Game Id
+        game_title:
+          type: string
+          title: Game Title
+        game_thumbnail_url:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Game Thumbnail Url
+        min_players:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Min Players
+        max_players:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Max Players
+        complexity:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Complexity
+        owners:
+          items:
+            additionalProperties: true
+            type: object
+          type: array
+          title: Owners
+      type: object
+      required:
+      - bgg_game_id
+      - game_title
+      - game_thumbnail_url
+      - min_players
+      - max_players
+      - complexity
+      - owners
+      title: FriendGameEntry
+    FriendInvitePreview:
+      properties:
+        inviter_id:
+          type: string
+          title: Inviter Id
+        inviter_username:
+          type: string
+          title: Inviter Username
+        inviter_display_name:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Inviter Display Name
+        inviter_avatar_url:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Inviter Avatar Url
+      type: object
+      required:
+      - inviter_id
+      - inviter_username
+      - inviter_display_name
+      - inviter_avatar_url
+      title: FriendInvitePreview
+    FriendInviteResponse:
+      properties:
+        token:
+          type: string
+          title: Token
+        url:
+          type: string
+          title: Url
+      type: object
+      required:
+      - token
+      - url
+      title: FriendInviteResponse
+    FriendRequestCreate:
+      properties:
+        username:
+          type: string
+          title: Username
+      type: object
+      required:
+      - username
+      title: FriendRequestCreate
+    FriendRequestResponse:
+      properties:
+        friendship_id:
+          type: string
+          title: Friendship Id
+        status:
+          type: string
+          title: Status
+      type: object
+      required:
+      - friendship_id
+      - status
+      title: FriendRequestResponse
+    FriendResponse:
+      properties:
+        friendship_id:
+          type: string
+          format: uuid
+          title: Friendship Id
+        user_id:
+          type: string
+          format: uuid
+          title: User Id
+        username:
+          type: string
+          title: Username
+        display_name:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Display Name
+        avatar_url:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Avatar Url
+        status:
+          type: string
+          title: Status
+        game_count:
+          type: integer
+          title: Game Count
+          default: 0
+      type: object
+      required:
+      - friendship_id
+      - user_id
+      - username
+      - display_name
+      - avatar_url
+      - status
+      title: FriendResponse
+    FriendshipPatch:
+      properties:
+        status:
+          type: string
+          enum:
+          - accepted
+          - declined
+          - blocked
+          title: Status
+      type: object
+      required:
+      - status
+      title: FriendshipPatch
+    GroupCreate:
+      properties:
+        name:
+          type: string
+          maxLength: 100
+          minLength: 1
+          title: Name
+        description:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Description
+        slug:
+          anyOf:
+          - type: string
+            maxLength: 100
+            pattern: ^[a-z0-9-]+$
+          - type: 'null'
+          title: Slug
+        is_public:
+          type: boolean
+          title: Is Public
+          default: false
+        seat_size:
+          anyOf:
+          - type: integer
+            maximum: 100.0
+            minimum: 1.0
+          - type: 'null'
+          title: Seat Size
+      type: object
+      required:
+      - name
+      title: GroupCreate
+    GroupResponse:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        name:
+          type: string
+          title: Name
+        description:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Description
+        slug:
+          type: string
+          title: Slug
+        owner_id:
+          type: string
+          format: uuid
+          title: Owner Id
+        is_public:
+          type: boolean
+          title: Is Public
+        seat_size:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Seat Size
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+        member_count:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Member Count
+        my_role:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: My Role
+      type: object
+      required:
+      - id
+      - name
+      - description
+      - slug
+      - owner_id
+      - is_public
+      - seat_size
+      - created_at
+      title: GroupResponse
+    GroupUpdate:
+      properties:
+        name:
+          anyOf:
+          - type: string
+            maxLength: 100
+            minLength: 1
+          - type: 'null'
+          title: Name
+        description:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Description
+        is_public:
+          anyOf:
+          - type: boolean
+          - type: 'null'
+          title: Is Public
+        seat_size:
+          anyOf:
+          - type: integer
+            maximum: 100.0
+            minimum: 1.0
+          - type: 'null'
+          title: Seat Size
+      type: object
+      title: GroupUpdate
+    GuestContext:
+      properties:
+        type:
+          type: string
+          title: Type
+        token:
+          type: string
+          title: Token
+        guest_name:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Guest Name
+        poll_id:
+          anyOf:
+          - type: string
+            format: uuid
+          - type: 'null'
+          title: Poll Id
+        poll_title:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Poll Title
+        series_title:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Series Title
+        group_name:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Group Name
+        options:
+          items:
+            $ref: '#/components/schemas/PollOptionOut'
+          type: array
+          title: Options
+        my_responses:
+          additionalProperties:
+            type: string
+          type: object
+          title: My Responses
+        occurrence_id:
+          anyOf:
+          - type: string
+            format: uuid
+          - type: 'null'
+          title: Occurrence Id
+        occurrence_date:
+          anyOf:
+          - type: string
+            format: date
+          - type: 'null'
+          title: Occurrence Date
+        occurrence_start_time:
+          anyOf:
+          - type: string
+            format: time
+          - type: 'null'
+          title: Occurrence Start Time
+      type: object
+      required:
+      - type
+      - token
+      title: GuestContext
+    GuestPollRespond:
+      properties:
+        guest_name:
+          type: string
+          maxLength: 100
+          minLength: 1
+          title: Guest Name
+        responses:
+          items:
+            $ref: '#/components/schemas/OptionResponse'
+          type: array
+          title: Responses
+      type: object
+      required:
+      - guest_name
+      - responses
+      title: GuestPollRespond
+    GuestRsvpCreate:
+      properties:
+        guest_name:
+          type: string
+          maxLength: 100
+          minLength: 1
+          title: Guest Name
+        response:
+          type: string
+          enum:
+          - 'yes'
+          - 'no'
+          - maybe
+          title: Response
+        note:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Note
+      type: object
+      required:
+      - guest_name
+      - response
+      title: GuestRsvpCreate
+    GuestTokenOut:
+      properties:
+        token:
+          type: string
+          title: Token
+        url:
+          type: string
+          title: Url
+        expires_at:
+          type: string
+          format: date-time
+          title: Expires At
+      type: object
+      required:
+      - token
+      - url
+      - expires_at
+      title: GuestTokenOut
+    HTTPValidationError:
+      properties:
+        detail:
+          items:
+            $ref: '#/components/schemas/ValidationError'
+          type: array
+          title: Detail
+      type: object
+      title: HTTPValidationError
+    InviteCreate:
+      properties:
+        email:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Email
+        role:
+          type: string
+          enum:
+          - organiser
+          - member
+          title: Role
+          default: member
+        expires_in_days:
+          type: integer
+          maximum: 30.0
+          minimum: 1.0
+          title: Expires In Days
+          default: 7
+      type: object
+      title: InviteCreate
+    InvitePreview:
+      properties:
+        group_id:
+          type: string
+          format: uuid
+          title: Group Id
+        group_name:
+          type: string
+          title: Group Name
+        group_description:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Group Description
+        role:
+          type: string
+          title: Role
+        inviter_username:
+          type: string
+          title: Inviter Username
+      type: object
+      required:
+      - group_id
+      - group_name
+      - group_description
+      - role
+      - inviter_username
+      title: InvitePreview
+    InviteResponse:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        group_id:
+          type: string
+          format: uuid
+          title: Group Id
+        email:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Email
+        token:
+          type: string
+          title: Token
+        role:
+          type: string
+          title: Role
+        expires_at:
+          type: string
+          format: date-time
+          title: Expires At
+        used_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Used At
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+      type: object
+      required:
+      - id
+      - group_id
+      - email
+      - token
+      - role
+      - expires_at
+      - used_at
+      - created_at
+      title: InviteResponse
+    LocationCreate:
+      properties:
+        name:
+          type: string
+          maxLength: 200
+          minLength: 1
+          title: Name
+        address:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Address
+        is_virtual:
+          type: boolean
+          title: Is Virtual
+          default: false
+        virtual_url:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Virtual Url
+        notes:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Notes
+      type: object
+      required:
+      - name
+      title: LocationCreate
+    LocationResponse:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        group_id:
+          type: string
+          format: uuid
+          title: Group Id
+        name:
+          type: string
+          title: Name
+        address:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Address
+        is_virtual:
+          type: boolean
+          title: Is Virtual
+        virtual_url:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Virtual Url
+        notes:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Notes
+      type: object
+      required:
+      - id
+      - group_id
+      - name
+      - address
+      - is_virtual
+      - virtual_url
+      - notes
+      title: LocationResponse
+    LocationUpdate:
+      properties:
+        name:
+          anyOf:
+          - type: string
+            maxLength: 200
+            minLength: 1
+          - type: 'null'
+          title: Name
+        address:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Address
+        is_virtual:
+          anyOf:
+          - type: boolean
+          - type: 'null'
+          title: Is Virtual
+        virtual_url:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Virtual Url
+        notes:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Notes
+      type: object
+      title: LocationUpdate
+    LoginRequest:
+      properties:
+        email:
+          type: string
+          format: email
+          title: Email
+        password:
+          type: string
+          title: Password
+      type: object
+      required:
+      - email
+      - password
+      title: LoginRequest
+    MemberResponse:
+      properties:
+        group_id:
+          type: string
+          format: uuid
+          title: Group Id
+        user_id:
+          type: string
+          format: uuid
+          title: User Id
+        role:
+          type: string
+          title: Role
+        joined_at:
+          type: string
+          format: date-time
+          title: Joined At
+        username:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Username
+        display_name:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Display Name
+      type: object
+      required:
+      - group_id
+      - user_id
+      - role
+      - joined_at
+      title: MemberResponse
+    MessageResponse:
+      properties:
+        message:
+          type: string
+          title: Message
+      type: object
+      required:
+      - message
+      title: MessageResponse
+    MyOccurrenceItem:
+      properties:
+        id:
+          type: string
+          title: Id
+        occurrence_date:
+          type: string
+          title: Occurrence Date
+        start_time:
+          type: string
+          title: Start Time
+        end_time:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: End Time
+        status:
+          type: string
+          title: Status
+        notes:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Notes
+        series_id:
+          type: string
+          title: Series Id
+        series_title:
+          type: string
+          title: Series Title
+        group_id:
+          type: string
+          title: Group Id
+        group_name:
+          type: string
+          title: Group Name
+        my_rsvp:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: My Rsvp
+      type: object
+      required:
+      - id
+      - occurrence_date
+      - start_time
+      - end_time
+      - status
+      - notes
+      - series_id
+      - series_title
+      - group_id
+      - group_name
+      - my_rsvp
+      title: MyOccurrenceItem
+    OccurrenceCreate:
+      properties:
+        occurrence_date:
+          type: string
+          format: date
+          title: Occurrence Date
+        start_time:
+          type: string
+          format: time
+          title: Start Time
+        end_time:
+          anyOf:
+          - type: string
+            format: time
+          - type: 'null'
+          title: End Time
+        location_id:
+          anyOf:
+          - type: string
+            format: uuid
+          - type: 'null'
+          title: Location Id
+        title:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Title
+        notes:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Notes
+        rsvp_deadline:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Rsvp Deadline
+      type: object
+      required:
+      - occurrence_date
+      - start_time
+      title: OccurrenceCreate
+    OccurrencePhotoOut:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        occurrence_id:
+          type: string
+          format: uuid
+          title: Occurrence Id
+        uploaded_by:
+          type: string
+          format: uuid
+          title: Uploaded By
+        photo_url:
+          type: string
+          title: Photo Url
+        caption:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Caption
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+        username:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Username
+      type: object
+      required:
+      - id
+      - occurrence_id
+      - uploaded_by
+      - photo_url
+      - caption
+      - created_at
+      title: OccurrencePhotoOut
+    OccurrenceResponse:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        series_id:
+          type: string
+          format: uuid
+          title: Series Id
+        title:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Title
+        occurrence_date:
+          type: string
+          format: date
+          title: Occurrence Date
+        start_time:
+          type: string
+          format: time
+          title: Start Time
+        end_time:
+          anyOf:
+          - type: string
+            format: time
+          - type: 'null'
+          title: End Time
+        location_id:
+          anyOf:
+          - type: string
+            format: uuid
+          - type: 'null'
+          title: Location Id
+        status:
+          type: string
+          title: Status
+        rsvp_deadline:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Rsvp Deadline
+        notes:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Notes
+        postponed_from_date:
+          anyOf:
+          - type: string
+            format: date
+          - type: 'null'
+          title: Postponed From Date
+        is_auto_generated:
+          type: boolean
+          title: Is Auto Generated
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+        updated_at:
+          type: string
+          format: date-time
+          title: Updated At
+        rsvp_counts:
+          anyOf:
+          - additionalProperties:
+              type: integer
+            type: object
+          - type: 'null'
+          title: Rsvp Counts
+      type: object
+      required:
+      - id
+      - series_id
+      - title
+      - occurrence_date
+      - start_time
+      - end_time
+      - location_id
+      - status
+      - rsvp_deadline
+      - notes
+      - postponed_from_date
+      - is_auto_generated
+      - created_at
+      - updated_at
+      title: OccurrenceResponse
+    OccurrenceUpdate:
+      properties:
+        status:
+          anyOf:
+          - type: string
+            enum:
+            - scheduled
+            - postponed
+            - cancelled
+          - type: 'null'
+          title: Status
+        occurrence_date:
+          anyOf:
+          - type: string
+            format: date
+          - type: 'null'
+          title: Occurrence Date
+        start_time:
+          anyOf:
+          - type: string
+            format: time
+          - type: 'null'
+          title: Start Time
+        end_time:
+          anyOf:
+          - type: string
+            format: time
+          - type: 'null'
+          title: End Time
+        location_id:
+          anyOf:
+          - type: string
+            format: uuid
+          - type: 'null'
+          title: Location Id
+        title:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Title
+        notes:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Notes
+        rsvp_deadline:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Rsvp Deadline
+        postponed_from_date:
+          anyOf:
+          - type: string
+            format: date
+          - type: 'null'
+          title: Postponed From Date
+      type: object
+      title: OccurrenceUpdate
+    OptionResponse:
+      properties:
+        option_id:
+          type: string
+          format: uuid
+          title: Option Id
+        response:
+          type: string
+          enum:
+          - 'yes'
+          - 'no'
+          - maybe
+          title: Response
+      type: object
+      required:
+      - option_id
+      - response
+      title: OptionResponse
+    PollCreate:
+      properties:
+        title:
+          type: string
+          maxLength: 200
+          minLength: 1
+          title: Title
+        description:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Description
+        deadline:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Deadline
+        options:
+          items:
+            $ref: '#/components/schemas/PollOptionCreate'
+          type: array
+          title: Options
+      type: object
+      required:
+      - title
+      title: PollCreate
+    PollOptionCreate:
+      properties:
+        proposed_date:
+          type: string
+          format: date
+          title: Proposed Date
+        start_time:
+          type: string
+          format: time
+          title: Start Time
+        end_time:
+          anyOf:
+          - type: string
+            format: time
+          - type: 'null'
+          title: End Time
+        location_id:
+          anyOf:
+          - type: string
+            format: uuid
+          - type: 'null'
+          title: Location Id
+        display_order:
+          type: integer
+          minimum: 0.0
+          title: Display Order
+          default: 0
+      type: object
+      required:
+      - proposed_date
+      - start_time
+      title: PollOptionCreate
+    PollOptionOut:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        poll_id:
+          type: string
+          format: uuid
+          title: Poll Id
+        proposed_date:
+          type: string
+          format: date
+          title: Proposed Date
+        start_time:
+          type: string
+          format: time
+          title: Start Time
+        end_time:
+          anyOf:
+          - type: string
+            format: time
+          - type: 'null'
+          title: End Time
+        location_id:
+          anyOf:
+          - type: string
+            format: uuid
+          - type: 'null'
+          title: Location Id
+        display_order:
+          type: integer
+          title: Display Order
+        response_counts:
+          additionalProperties:
+            type: integer
+          type: object
+          title: Response Counts
+      type: object
+      required:
+      - id
+      - poll_id
+      - proposed_date
+      - start_time
+      - end_time
+      - location_id
+      - display_order
+      title: PollOptionOut
+    PollOut:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        series_id:
+          type: string
+          format: uuid
+          title: Series Id
+        title:
+          type: string
+          title: Title
+        description:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Description
+        deadline:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Deadline
+        status:
+          type: string
+          title: Status
+        chosen_option_id:
+          anyOf:
+          - type: string
+            format: uuid
+          - type: 'null'
+          title: Chosen Option Id
+        created_by:
+          type: string
+          format: uuid
+          title: Created By
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+        options:
+          items:
+            $ref: '#/components/schemas/PollOptionOut'
+          type: array
+          title: Options
+        my_responses:
+          additionalProperties:
+            type: string
+          type: object
+          title: My Responses
+      type: object
+      required:
+      - id
+      - series_id
+      - title
+      - description
+      - deadline
+      - status
+      - chosen_option_id
+      - created_by
+      - created_at
+      title: PollOut
+    PollResolve:
+      properties:
+        chosen_option_id:
+          type: string
+          format: uuid
+          title: Chosen Option Id
+      type: object
+      required:
+      - chosen_option_id
+      title: PollResolve
+    PollRespond:
+      properties:
+        responses:
+          items:
+            $ref: '#/components/schemas/OptionResponse'
+          type: array
+          title: Responses
+      type: object
+      required:
+      - responses
+      title: PollRespond
+    PublicEventDetail:
+      properties:
+        id:
+          type: string
+          title: Id
+        occurrence_date:
+          type: string
+          title: Occurrence Date
+        start_time:
+          type: string
+          title: Start Time
+        end_time:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: End Time
+        status:
+          type: string
+          title: Status
+        notes:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Notes
+        group_name:
+          type: string
+          title: Group Name
+        group_slug:
+          type: string
+          title: Group Slug
+        series_title:
+          type: string
+          title: Series Title
+        rsvp_yes_count:
+          type: integer
+          title: Rsvp Yes Count
+      type: object
+      required:
+      - id
+      - occurrence_date
+      - start_time
+      - end_time
+      - status
+      - notes
+      - group_name
+      - group_slug
+      - series_title
+      - rsvp_yes_count
+      title: PublicEventDetail
+    PublicEventItem:
+      properties:
+        id:
+          type: string
+          title: Id
+        occurrence_date:
+          type: string
+          title: Occurrence Date
+        start_time:
+          type: string
+          title: Start Time
+        end_time:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: End Time
+        group_name:
+          type: string
+          title: Group Name
+        group_slug:
+          type: string
+          title: Group Slug
+        series_title:
+          type: string
+          title: Series Title
+        rsvp_yes_count:
+          type: integer
+          title: Rsvp Yes Count
+      type: object
+      required:
+      - id
+      - occurrence_date
+      - start_time
+      - end_time
+      - group_name
+      - group_slug
+      - series_title
+      - rsvp_yes_count
+      title: PublicEventItem
+    PublicProfileResponse:
+      properties:
+        username:
+          type: string
+          title: Username
+        display_name:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Display Name
+        bio:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Bio
+        avatar_url:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Avatar Url
+        member_since:
+          type: string
+          title: Member Since
+        stats_public:
+          type: boolean
+          title: Stats Public
+        stats:
+          $ref: '#/components/schemas/PublicProfileStats'
+      type: object
+      required:
+      - username
+      - display_name
+      - bio
+      - avatar_url
+      - member_since
+      - stats_public
+      - stats
+      title: PublicProfileResponse
+    PublicProfileStats:
+      properties:
+        total_games_played:
+          type: integer
+          title: Total Games Played
+        total_plays:
+          type: integer
+          title: Total Plays
+        games_owned:
+          type: integer
+          title: Games Owned
+      type: object
+      required:
+      - total_games_played
+      - total_plays
+      - games_owned
+      title: PublicProfileStats
+    RefreshRequest:
+      properties:
+        refresh_token:
+          type: string
+          title: Refresh Token
+      type: object
+      required:
+      - refresh_token
+      title: RefreshRequest
+    RegisterRequest:
+      properties:
+        email:
+          type: string
+          format: email
+          title: Email
+        username:
+          type: string
+          title: Username
+        password:
+          type: string
+          title: Password
+      type: object
+      required:
+      - email
+      - username
+      - password
+      title: RegisterRequest
+    ResetPasswordRequest:
+      properties:
+        token:
+          type: string
+          title: Token
+        new_password:
+          type: string
+          title: New Password
+      type: object
+      required:
+      - token
+      - new_password
+      title: ResetPasswordRequest
+    RsvpCreate:
+      properties:
+        response:
+          type: string
+          enum:
+          - 'yes'
+          - 'no'
+          - maybe
+          title: Response
+        note:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Note
+      type: object
+      required:
+      - response
+      title: RsvpCreate
+    RsvpOut:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        occurrence_id:
+          type: string
+          format: uuid
+          title: Occurrence Id
+        user_id:
+          anyOf:
+          - type: string
+            format: uuid
+          - type: 'null'
+          title: User Id
+        response:
+          type: string
+          title: Response
+        note:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Note
+        responded_at:
+          type: string
+          format: date-time
+          title: Responded At
+        username:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Username
+      type: object
+      required:
+      - id
+      - occurrence_id
+      - user_id
+      - response
+      - note
+      - responded_at
+      title: RsvpOut
+    SeriesCreate:
+      properties:
+        title:
+          type: string
+          maxLength: 200
+          minLength: 1
+          title: Title
+        description:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Description
+        recurrence:
+          type: string
+          enum:
+          - once
+          - weekly
+          - biweekly
+          - monthly
+          - custom
+          title: Recurrence
+        default_day_of_week:
+          anyOf:
+          - type: integer
+            maximum: 6.0
+            minimum: 0.0
+          - type: 'null'
+          title: Default Day Of Week
+        default_start_time:
+          anyOf:
+          - type: string
+            format: time
+          - type: 'null'
+          title: Default Start Time
+        default_duration_minutes:
+          anyOf:
+          - type: integer
+            maximum: 1440.0
+            minimum: 15.0
+          - type: 'null'
+          title: Default Duration Minutes
+        default_location_id:
+          anyOf:
+          - type: string
+            format: uuid
+          - type: 'null'
+          title: Default Location Id
+        series_start_date:
+          anyOf:
+          - type: string
+            format: date
+          - type: 'null'
+          title: Series Start Date
+        series_end_date:
+          anyOf:
+          - type: string
+            format: date
+          - type: 'null'
+          title: Series End Date
+      type: object
+      required:
+      - title
+      - recurrence
+      title: SeriesCreate
+    SeriesResponse:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        group_id:
+          type: string
+          format: uuid
+          title: Group Id
+        title:
+          type: string
+          title: Title
+        description:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Description
+        status:
+          type: string
+          title: Status
+        recurrence:
+          type: string
+          title: Recurrence
+        default_day_of_week:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Default Day Of Week
+        default_start_time:
+          anyOf:
+          - type: string
+            format: time
+          - type: 'null'
+          title: Default Start Time
+        default_duration_minutes:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Default Duration Minutes
+        default_location_id:
+          anyOf:
+          - type: string
+            format: uuid
+          - type: 'null'
+          title: Default Location Id
+        series_start_date:
+          anyOf:
+          - type: string
+            format: date
+          - type: 'null'
+          title: Series Start Date
+        series_end_date:
+          anyOf:
+          - type: string
+            format: date
+          - type: 'null'
+          title: Series End Date
+        created_by:
+          type: string
+          format: uuid
+          title: Created By
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+        updated_at:
+          type: string
+          format: date-time
+          title: Updated At
+      type: object
+      required:
+      - id
+      - group_id
+      - title
+      - description
+      - status
+      - recurrence
+      - default_day_of_week
+      - default_start_time
+      - default_duration_minutes
+      - default_location_id
+      - series_start_date
+      - series_end_date
+      - created_by
+      - created_at
+      - updated_at
+      title: SeriesResponse
+    SeriesUpdate:
+      properties:
+        title:
+          anyOf:
+          - type: string
+            maxLength: 200
+            minLength: 1
+          - type: 'null'
+          title: Title
+        description:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Description
+        status:
+          anyOf:
+          - type: string
+            enum:
+            - active
+            - on_hold
+            - cancelled
+            - completed
+          - type: 'null'
+          title: Status
+        default_start_time:
+          anyOf:
+          - type: string
+            format: time
+          - type: 'null'
+          title: Default Start Time
+        default_duration_minutes:
+          anyOf:
+          - type: integer
+            maximum: 1440.0
+            minimum: 15.0
+          - type: 'null'
+          title: Default Duration Minutes
+        default_location_id:
+          anyOf:
+          - type: string
+            format: uuid
+          - type: 'null'
+          title: Default Location Id
+        series_end_date:
+          anyOf:
+          - type: string
+            format: date
+          - type: 'null'
+          title: Series End Date
+      type: object
+      title: SeriesUpdate
+    TokenResponse:
+      properties:
+        access_token:
+          type: string
+          title: Access Token
+        refresh_token:
+          type: string
+          title: Refresh Token
+        token_type:
+          type: string
+          title: Token Type
+          default: bearer
+      type: object
+      required:
+      - access_token
+      - refresh_token
+      title: TokenResponse
+    UpdateProfileRequest:
+      properties:
+        display_name:
+          anyOf:
+          - type: string
+            maxLength: 100
+          - type: 'null'
+          title: Display Name
+        bio:
+          anyOf:
+          - type: string
+            maxLength: 500
+          - type: 'null'
+          title: Bio
+        avatar_url:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Avatar Url
+        profile_public:
+          anyOf:
+          - type: boolean
+          - type: 'null'
+          title: Profile Public
+        stats_public:
+          anyOf:
+          - type: boolean
+          - type: 'null'
+          title: Stats Public
+      type: object
+      title: UpdateProfileRequest
+    UserPublicProfileResponse:
+      properties:
+        id:
+          type: string
+          title: Id
+        username:
+          type: string
+          title: Username
+        display_name:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Display Name
+        avatar_url:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Avatar Url
+      type: object
+      required:
+      - id
+      - username
+      - display_name
+      - avatar_url
+      title: UserPublicProfileResponse
+    UserResponse:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        email:
+          type: string
+          format: email
+          title: Email
+        username:
+          type: string
+          title: Username
+        display_name:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Display Name
+        bio:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Bio
+        avatar_url:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Avatar Url
+        profile_public:
+          type: boolean
+          title: Profile Public
+        stats_public:
+          type: boolean
+          title: Stats Public
+        is_verified:
+          type: boolean
+          title: Is Verified
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+      type: object
+      required:
+      - id
+      - email
+      - username
+      - display_name
+      - bio
+      - avatar_url
+      - profile_public
+      - stats_public
+      - is_verified
+      - created_at
+      title: UserResponse
+    ValidationError:
+      properties:
+        loc:
+          items:
+            anyOf:
+            - type: string
+            - type: integer
+          type: array
+          title: Location
+        msg:
+          type: string
+          title: Message
+        type:
+          type: string
+          title: Error Type
+        input:
+          title: Input
+        ctx:
+          type: object
+          title: Context
+      type: object
+      required:
+      - loc
+      - msg
+      - type
+      title: ValidationError
+  securitySchemes:
+    HTTPBearer:
+      type: http
+      scheme: bearer

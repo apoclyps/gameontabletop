@@ -5,7 +5,8 @@ from app.api.auth import router as auth_router
 from app.api.bgg import router as bgg_router
 from app.api.collection import router as collection_router
 from app.api.friends import router as friends_router
-from app.api.groups import invites_router, router as groups_router
+from app.api.groups import invites_router
+from app.api.groups import router as groups_router
 from app.api.guest import router as guest_router
 from app.api.locations import router as locations_router
 from app.api.occurrences import router as occurrences_router
@@ -15,7 +16,14 @@ from app.api.series import router as series_router
 from app.api.users import router as users_router
 from app.config import settings
 
-app = FastAPI(title="Game On Tabletop API")
+app = FastAPI(
+    title="Game On Tabletop API",
+    description=(
+        "REST API for Game On Tabletop — a platform for organising tabletop game nights, "
+        "tracking game collections, scheduling events, and managing group RSVPs."
+    ),
+    version="1.0.0",
+)
 
 app.add_middleware(
     CORSMiddleware,
@@ -42,12 +50,12 @@ api_router.include_router(guest_router)
 api_router.include_router(public_router)
 
 
-@api_router.get("/")
+@api_router.get("/", include_in_schema=False)
 async def root():
     return {"message": "Hello World"}
 
 
-@api_router.get("/health")
+@api_router.get("/health", summary="Health check", tags=["health"])
 async def health():
     return {"status": "ok"}
 

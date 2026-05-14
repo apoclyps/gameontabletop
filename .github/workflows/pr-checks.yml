@@ -32,6 +32,17 @@ jobs:
       - name: Test (pytest)
         run: uv run pytest
 
+      - name: Validate OpenAPI spec
+        run: |
+          uv run python -c "
+          import json, yaml
+          from app.main import app
+          spec = app.openapi()
+          with open('openapi.yaml', 'w') as f:
+              yaml.dump(spec, f, allow_unicode=True, sort_keys=False)
+          "
+          uv run openapi-spec-validator openapi.yaml
+
   frontend:
     name: Frontend — lint & test
     runs-on: ubuntu-latest

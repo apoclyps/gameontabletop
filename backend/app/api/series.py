@@ -9,7 +9,12 @@ from app.dependencies import get_current_user
 from app.models.group import Group, GroupMember
 from app.models.scheduler import NightOccurrence, NightSeries
 from app.models.user import User
-from app.schemas.scheduler import OccurrenceResponse, SeriesCreate, SeriesResponse, SeriesUpdate
+from app.schemas.scheduler import (
+    OccurrenceResponse,
+    SeriesCreate,
+    SeriesResponse,
+    SeriesUpdate,
+)
 from app.services.recurrence import ensure_occurrences_generated
 
 router = APIRouter(tags=["series"])
@@ -43,6 +48,12 @@ async def _get_series_member(
     "/groups/{group_id}/series",
     response_model=SeriesResponse,
     status_code=status.HTTP_201_CREATED,
+    summary="Create a recurring game night series for a group (organiser only)",
+    responses={
+        401: {"description": "Unauthorized"},
+        403: {"description": "Not an organiser"},
+        404: {"description": "Group not found"},
+    },
 )
 async def create_series(
     group_id: uuid.UUID,
@@ -69,7 +80,16 @@ async def create_series(
     return series
 
 
-@router.get("/groups/{group_id}/series", response_model=list[SeriesResponse])
+@router.get(
+    "/groups/{group_id}/series",
+    response_model=list[SeriesResponse],
+    summary="List series for a group",
+    responses={
+        401: {"description": "Unauthorized"},
+        403: {"description": "Not a member"},
+        404: {"description": "Group not found"},
+    },
+)
 async def list_series(
     group_id: uuid.UUID,
     current_user: User = Depends(get_current_user),
@@ -84,7 +104,16 @@ async def list_series(
     return list(result.scalars().all())
 
 
-@router.get("/series/{series_id}", response_model=SeriesResponse)
+@router.get(
+    "/series/{series_id}",
+    response_model=SeriesResponse,
+    summary="Get a series by ID",
+    responses={
+        401: {"description": "Unauthorized"},
+        403: {"description": "Not a member"},
+        404: {"description": "Series not found"},
+    },
+)
 async def get_series(
     series_id: uuid.UUID,
     current_user: User = Depends(get_current_user),
@@ -96,7 +125,16 @@ async def get_series(
     return series
 
 
-@router.patch("/series/{series_id}", response_model=SeriesResponse)
+@router.patch(
+    "/series/{series_id}",
+    response_model=SeriesResponse,
+    summary="Update a series (organiser only)",
+    responses={
+        401: {"description": "Unauthorized"},
+        403: {"description": "Not an organiser"},
+        404: {"description": "Series not found"},
+    },
+)
 async def update_series(
     series_id: uuid.UUID,
     body: SeriesUpdate,
@@ -115,7 +153,16 @@ async def update_series(
     return series
 
 
-@router.get("/series/{series_id}/occurrences", response_model=list[OccurrenceResponse])
+@router.get(
+    "/series/{series_id}/occurrences",
+    response_model=list[OccurrenceResponse],
+    summary="List occurrences for a series",
+    responses={
+        401: {"description": "Unauthorized"},
+        403: {"description": "Not a member"},
+        404: {"description": "Series not found"},
+    },
+)
 async def list_occurrences(
     series_id: uuid.UUID,
     current_user: User = Depends(get_current_user),

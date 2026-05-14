@@ -1,6 +1,6 @@
+import uuid
 from datetime import date, datetime
 from typing import Literal
-import uuid
 
 from pydantic import BaseModel
 
@@ -76,3 +76,27 @@ class FriendGameEntry(BaseModel):
     max_players: int | None
     complexity: float | None
     owners: list[dict]  # [{user_id, username, display_name}]
+
+
+class FriendRequestResponse(BaseModel):
+    friendship_id: str
+    status: str
+
+
+class FriendInviteResponse(BaseModel):
+    token: str
+    url: str
+
+
+class FriendInvitePreview(BaseModel):
+    inviter_id: str
+    inviter_username: str
+    inviter_display_name: str | None
+    inviter_avatar_url: str | None
+
+
+class UserPublicProfileResponse(BaseModel):
+    id: str
+    username: str
+    display_name: str | None
+    avatar_url: str | None

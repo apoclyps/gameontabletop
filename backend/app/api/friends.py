@@ -14,17 +14,26 @@ from app.models.group import GroupMember
 from app.models.user import User
 from app.schemas.collection import (
     FriendGameEntry,
+    FriendInvitePreview,
+    FriendInviteResponse,
     FriendRequestCreate,
+    FriendRequestResponse,
     FriendResponse,
     FriendshipPatch,
 )
+from app.schemas.common import MessageResponse
 from app.services.auth import create_friend_invite_token, decode_token
 from app.services.collection import get_friend_ids
 
 router = APIRouter(prefix="/friends", tags=["friends"])
 
 
-@router.get("", response_model=list[FriendResponse])
+@router.get(
+    "",
+    response_model=list[FriendResponse],
+    summary="List accepted friends",
+    responses={401: {"description": "Unauthorized"}},
+)
 async def list_friends(
     current_user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
@@ -80,7 +89,17 @@ async def list_friends(
     return friends
 
 
-@router.post("/request", status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/request",
+    response_model=FriendRequestResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Send a friend request by username",
+    responses={
+        400: {"description": "Cannot send request (user not found, self-request, or blocked)"},
+        401: {"description": "Unauthorized"},
+        409: {"description": "Friend request already pending"},
+    },
+)
 async def send_friend_request(
     body: FriendRequestCreate,
     current_user: User = Depends(get_current_user),
@@ -141,7 +160,12 @@ async def send_friend_request(
     return {"friendship_id": str(friendship.id), "status": friendship.status}
 
 
-@router.get("/requests", response_model=list[FriendResponse])
+@router.get(
+    "/requests",
+    response_model=list[FriendResponse],
+    summary="List pending incoming friend requests",
+    responses={401: {"description": "Unauthorized"}},
+)
 async def list_friend_requests(
     current_user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
@@ -173,7 +197,12 @@ async def list_friend_requests(
     return requests
 
 
-@router.post("/invite")
+@router.post(
+    "/invite",
+    response_model=FriendInviteResponse,
+    summary="Create a shareable friend invite link",
+    responses={401: {"description": "Unauthorized"}},
+)
 async def create_friend_invite(
     current_user: User = Depends(get_current_user),
 ):
@@ -182,7 +211,12 @@ async def create_friend_invite(
     return {"token": token, "url": invite_url}
 
 
-@router.get("/invite/{token}")
+@router.get(
+    "/invite/{token}",
+    response_model=FriendInvitePreview,
+    summary="Preview a friend invite link before accepting",
+    responses={404: {"description": "Invite not found or expired"}},
+)
 async def preview_friend_invite(
     token: str,
     session: AsyncSession = Depends(get_session),
@@ -207,7 +241,16 @@ async def preview_friend_invite(
     }
 
 
-@router.post("/invite/{token}/accept")
+@router.post(
+    "/invite/{token}/accept",
+    response_model=MessageResponse,
+    summary="Accept a friend invite link",
+    responses={
+        400: {"description": "Cannot connect (self-invite or blocked)"},
+        401: {"description": "Unauthorized"},
+        404: {"description": "Invite not found or expired"},
+    },
+)
 async def accept_friend_invite(
     token: str,
     current_user: User = Depends(get_current_user),
@@ -261,7 +304,16 @@ async def accept_friend_invite(
     return {"message": "Friend added successfully"}
 
 
-@router.patch("/{friendship_id}", response_model=FriendResponse)
+@router.patch(
+    "/{friendship_id}",
+    response_model=FriendResponse,
+    summary="Accept, decline, or block a friendship",
+    responses={
+        401: {"description": "Unauthorized"},
+        403: {"description": "Not part of this friendship or wrong role"},
+        404: {"description": "Friendship not found"},
+    },
+)
 async def patch_friendship(
     friendship_id: uuid.UUID,
     body: FriendshipPatch,
@@ -305,7 +357,16 @@ async def patch_friendship(
     )
 
 
-@router.delete("/{friendship_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/{friendship_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Remove a friendship",
+    responses={
+        401: {"description": "Unauthorized"},
+        403: {"description": "Not part of this friendship"},
+        404: {"description": "Friendship not found"},
+    },
+)
 async def delete_friendship(
     friendship_id: uuid.UUID,
     current_user: User = Depends(get_current_user),
@@ -325,7 +386,12 @@ async def delete_friendship(
     await session.commit()
 
 
-@router.get("/collection", response_model=list[FriendGameEntry])
+@router.get(
+    "/collection",
+    response_model=list[FriendGameEntry],
+    summary="Get games owned by friends (filterable by player count)",
+    responses={401: {"description": "Unauthorized"}},
+)
 async def friends_collection(
     status: str = "own",
     q: str | None = None,
@@ -397,7 +463,12 @@ async def friends_collection(
     return [FriendGameEntry(**data) for data in grouped.values()]
 
 
-@router.get("/suggestions", response_model=list[dict])
+@router.get(
+    "/suggestions",
+    response_model=list[dict],
+    summary="Suggest people to add as friends based on shared groups",
+    responses={401: {"description": "Unauthorized"}},
+)
 async def friend_suggestions(
     current_user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),

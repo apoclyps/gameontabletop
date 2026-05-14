@@ -10,11 +10,16 @@ from app.models.collection import UserGameCollection
 from app.models.group import Group
 from app.models.scheduler import NightOccurrence, NightSeries, Rsvp
 from app.models.user import User
+from app.schemas.public import PublicEventDetail, PublicEventItem, PublicProfileResponse
 
 router = APIRouter(prefix="/public", tags=["public"])
 
 
-@router.get("/events")
+@router.get(
+    "/events",
+    response_model=list[PublicEventItem],
+    summary="List upcoming public game night events (paginated)",
+)
 async def list_public_events(
     page: int = Query(1, ge=1),
     per_page: int = Query(20, ge=1, le=100),
@@ -60,7 +65,12 @@ async def list_public_events(
     return events
 
 
-@router.get("/events/{occurrence_id}")
+@router.get(
+    "/events/{occurrence_id}",
+    response_model=PublicEventDetail,
+    summary="Get details of a single public event",
+    responses={404: {"description": "Event not found or not public"}},
+)
 async def get_public_event(
     occurrence_id: uuid.UUID,
     session: AsyncSession = Depends(get_session),
@@ -99,7 +109,12 @@ async def get_public_event(
     }
 
 
-@router.get("/profile/{username}")
+@router.get(
+    "/profile/{username}",
+    response_model=PublicProfileResponse,
+    summary="Get a user's public profile by username",
+    responses={404: {"description": "Profile not found or not public"}},
+)
 async def get_public_profile(
     username: str,
     session: AsyncSession = Depends(get_session),

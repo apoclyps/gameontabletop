@@ -14,6 +14,7 @@ from app.models.group import Group, GroupMember
 from app.models.scheduler import NightOccurrence, NightSeries, OccurrencePhoto, Rsvp
 from app.models.user import User
 from app.schemas.scheduler import (
+    MyOccurrenceItem,
     OccurrenceCreate,
     OccurrencePhotoOut,
     OccurrenceResponse,
@@ -28,7 +29,12 @@ _ALLOWED_PHOTO_TYPES = {"image/jpeg", "image/png", "image/webp"}
 _MAX_PHOTO_BYTES = 10 * 1024 * 1024  # 10 MB
 
 
-@router.get("/me/occurrences")
+@router.get(
+    "/me/occurrences",
+    response_model=list[MyOccurrenceItem],
+    summary="List upcoming (or past) occurrences across all the user's groups",
+    responses={401: {"description": "Unauthorized"}},
+)
 async def list_my_occurrences(
     past: bool = Query(False),
     current_user: User = Depends(get_current_user),
@@ -106,6 +112,12 @@ async def _get_occurrence_member(
     "/series/{series_id}/occurrences",
     response_model=OccurrenceResponse,
     status_code=status.HTTP_201_CREATED,
+    summary="Create a one-off occurrence for a series (organiser only)",
+    responses={
+        401: {"description": "Unauthorized"},
+        403: {"description": "Not an organiser"},
+        404: {"description": "Series not found"},
+    },
 )
 async def create_occurrence(
     series_id: uuid.UUID,
@@ -129,7 +141,16 @@ async def create_occurrence(
     return occ
 
 
-@router.get("/occurrences/{occurrence_id}", response_model=OccurrenceResponse)
+@router.get(
+    "/occurrences/{occurrence_id}",
+    response_model=OccurrenceResponse,
+    summary="Get a single occurrence with RSVP counts",
+    responses={
+        401: {"description": "Unauthorized"},
+        403: {"description": "Not a member of this group"},
+        404: {"description": "Occurrence not found"},
+    },
+)
 async def get_occurrence(
     occurrence_id: uuid.UUID,
     current_user: User = Depends(get_current_user),
@@ -142,7 +163,16 @@ async def get_occurrence(
     return resp
 
 
-@router.patch("/occurrences/{occurrence_id}", response_model=OccurrenceResponse)
+@router.patch(
+    "/occurrences/{occurrence_id}",
+    response_model=OccurrenceResponse,
+    summary="Update an occurrence (organiser only)",
+    responses={
+        401: {"description": "Unauthorized"},
+        403: {"description": "Not an organiser"},
+        404: {"description": "Occurrence not found"},
+    },
+)
 async def update_occurrence(
     occurrence_id: uuid.UUID,
     body: OccurrenceUpdate,
@@ -169,7 +199,17 @@ async def update_occurrence(
     return resp
 
 
-@router.post("/occurrences/{occurrence_id}/rsvp", response_model=RsvpOut)
+@router.post(
+    "/occurrences/{occurrence_id}/rsvp",
+    response_model=RsvpOut,
+    summary="Submit or update an RSVP for an occurrence",
+    responses={
+        400: {"description": "Cannot RSVP to a cancelled occurrence"},
+        401: {"description": "Unauthorized"},
+        403: {"description": "Not a member of this group"},
+        404: {"description": "Occurrence not found"},
+    },
+)
 async def upsert_rsvp(
     occurrence_id: uuid.UUID,
     body: RsvpCreate,
@@ -210,7 +250,16 @@ async def upsert_rsvp(
     return out
 
 
-@router.get("/occurrences/{occurrence_id}/rsvps", response_model=list[RsvpOut])
+@router.get(
+    "/occurrences/{occurrence_id}/rsvps",
+    response_model=list[RsvpOut],
+    summary="List RSVPs for an occurrence",
+    responses={
+        401: {"description": "Unauthorized"},
+        403: {"description": "Not a member of this group"},
+        404: {"description": "Occurrence not found"},
+    },
+)
 async def list_rsvps(
     occurrence_id: uuid.UUID,
     current_user: User = Depends(get_current_user),
@@ -232,7 +281,16 @@ async def list_rsvps(
     return rsvps
 
 
-@router.get("/occurrences/{occurrence_id}/photos", response_model=list[OccurrencePhotoOut])
+@router.get(
+    "/occurrences/{occurrence_id}/photos",
+    response_model=list[OccurrencePhotoOut],
+    summary="List photos uploaded to an occurrence",
+    responses={
+        401: {"description": "Unauthorized"},
+        403: {"description": "Not a member of this group"},
+        404: {"description": "Occurrence not found"},
+    },
+)
 async def list_photos(
     occurrence_id: uuid.UUID,
     current_user: User = Depends(get_current_user),
@@ -258,6 +316,14 @@ async def list_photos(
     "/occurrences/{occurrence_id}/photos",
     response_model=OccurrencePhotoOut,
     status_code=status.HTTP_201_CREATED,
+    summary="Upload a photo to an occurrence",
+    responses={
+        400: {"description": "Invalid file type or file too large"},
+        401: {"description": "Unauthorized"},
+        403: {"description": "Not a member of this group"},
+        404: {"description": "Occurrence not found"},
+        502: {"description": "Storage upload failed or not configured"},
+    },
 )
 async def upload_photo(
     occurrence_id: uuid.UUID,
@@ -314,7 +380,16 @@ async def upload_photo(
     return out
 
 
-@router.delete("/occurrences/{occurrence_id}/photos/{photo_id}", status_code=204)
+@router.delete(
+    "/occurrences/{occurrence_id}/photos/{photo_id}",
+    status_code=204,
+    summary="Delete a photo from an occurrence (uploader or organiser only)",
+    responses={
+        401: {"description": "Unauthorized"},
+        403: {"description": "Cannot delete this photo"},
+        404: {"description": "Photo not found"},
+    },
+)
 async def delete_photo(
     occurrence_id: uuid.UUID,
     photo_id: uuid.UUID,

@@ -15,6 +15,7 @@ from app.schemas.auth import (
     ResetPasswordRequest,
     TokenResponse,
 )
+from app.schemas.common import MessageResponse
 from app.services.auth import (
     create_access_token,
     create_password_reset_token,
@@ -29,7 +30,16 @@ from app.services.email import send_password_reset_email, send_verification_emai
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 
-@router.post("/register", status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/register",
+    status_code=status.HTTP_201_CREATED,
+    response_model=MessageResponse,
+    summary="Register a new account",
+    responses={
+        409: {"description": "Email or username already registered"},
+        422: {"description": "Validation error"},
+    },
+)
 async def register(body: RegisterRequest, session: AsyncSession = Depends(get_session)):
     existing = await session.execute(
         select(User).where((User.email == body.email) | (User.username == body.username))
@@ -52,7 +62,16 @@ async def register(body: RegisterRequest, session: AsyncSession = Depends(get_se
     return {"message": "Registration successful. Check your email to verify your account."}
 
 
-@router.post("/login", response_model=TokenResponse)
+@router.post(
+    "/login",
+    response_model=TokenResponse,
+    summary="Log in and obtain JWT tokens",
+    responses={
+        401: {"description": "Invalid credentials"},
+        403: {"description": "Email not verified or account disabled"},
+        422: {"description": "Validation error"},
+    },
+)
 async def login(body: LoginRequest, session: AsyncSession = Depends(get_session)):
     result = await session.execute(select(User).where(User.email == body.email))
     user = result.scalar_one_or_none()
@@ -70,13 +89,24 @@ async def login(body: LoginRequest, session: AsyncSession = Depends(get_session)
     )
 
 
-@router.post("/logout")
+@router.post(
+    "/logout",
+    response_model=MessageResponse,
+    summary="Log out (client-side token discard)",
+)
 async def logout():
     # Tokens are stateless; client discards them.
     return {"message": "Logged out"}
 
 
-@router.post("/refresh", response_model=TokenResponse)
+@router.post(
+    "/refresh",
+    response_model=TokenResponse,
+    summary="Refresh access token using a refresh token",
+    responses={
+        401: {"description": "Invalid or expired refresh token"},
+    },
+)
 async def refresh(body: RefreshRequest, session: AsyncSession = Depends(get_session)):
     try:
         payload = decode_token(body.refresh_token)
@@ -97,7 +127,15 @@ async def refresh(body: RefreshRequest, session: AsyncSession = Depends(get_sess
     )
 
 
-@router.get("/verify-email")
+@router.get(
+    "/verify-email",
+    response_model=MessageResponse,
+    summary="Verify email address via token from confirmation email",
+    responses={
+        400: {"description": "Invalid or expired verification token"},
+        404: {"description": "User not found"},
+    },
+)
 async def verify_email(token: str, session: AsyncSession = Depends(get_session)):
     try:
         payload = decode_token(token)
@@ -119,7 +157,15 @@ async def verify_email(token: str, session: AsyncSession = Depends(get_session))
     return {"message": "Email verified successfully"}
 
 
-@router.post("/forgot-password")
+@router.post(
+    "/forgot-password",
+    response_model=MessageResponse,
+    summary="Request a password reset email",
+    description=(
+        "Always returns 200 to prevent email enumeration. "
+        "A reset link is sent only if the address is registered."
+    ),
+)
 async def forgot_password(body: ForgotPasswordRequest, session: AsyncSession = Depends(get_session)):
     result = await session.execute(select(User).where(User.email == body.email))
     user = result.scalar_one_or_none()
@@ -130,7 +176,15 @@ async def forgot_password(body: ForgotPasswordRequest, session: AsyncSession = D
     return {"message": "If that email is registered, a reset link has been sent."}
 
 
-@router.post("/reset-password")
+@router.post(
+    "/reset-password",
+    response_model=MessageResponse,
+    summary="Reset password using a reset token",
+    responses={
+        400: {"description": "Invalid or expired reset token"},
+        404: {"description": "User not found"},
+    },
+)
 async def reset_password(body: ResetPasswordRequest, session: AsyncSession = Depends(get_session)):
     try:
         payload = decode_token(body.token)

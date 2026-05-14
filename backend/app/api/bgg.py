@@ -6,6 +6,7 @@ import httpx
 from fastapi import APIRouter, HTTPException
 
 from app.config import settings
+from app.schemas.bgg import BGGGameResponse, BGGSearchResult
 
 router = APIRouter(prefix="/bgg", tags=["bgg"])
 
@@ -100,7 +101,17 @@ async def _fetch_xml(url: str) -> str:
     raise HTTPException(status_code=504, detail="BGG API timed out")
 
 
-@router.get("/games")
+@router.get(
+    "/games",
+    response_model=dict[str, BGGGameResponse],
+    summary="Fetch BGG game details by comma-separated IDs (max 50)",
+    responses={
+        400: {"description": "Invalid or missing IDs"},
+        502: {"description": "BGG API error"},
+        503: {"description": "BGG token not configured"},
+        504: {"description": "BGG API timed out"},
+    },
+)
 async def get_bgg_games(ids: str):
     try:
         id_list = [int(i.strip()) for i in ids.split(",") if i.strip()][:50]
@@ -132,7 +143,17 @@ async def get_bgg_games(ids: str):
     return result
 
 
-@router.get("/search")
+@router.get(
+    "/search",
+    response_model=list[BGGSearchResult],
+    summary="Search BGG for board games by title",
+    responses={
+        400: {"description": "Query too short"},
+        502: {"description": "BGG API error"},
+        503: {"description": "BGG token not configured"},
+        504: {"description": "BGG API timed out"},
+    },
+)
 async def search_bgg(q: str):
     if len(q.strip()) < 2:
         raise HTTPException(status_code=400, detail="Query too short")

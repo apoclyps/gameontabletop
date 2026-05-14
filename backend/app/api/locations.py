@@ -26,7 +26,16 @@ async def _get_group_member(
     return group, member
 
 
-@router.get("/groups/{group_id}/locations", response_model=list[LocationResponse])
+@router.get(
+    "/groups/{group_id}/locations",
+    response_model=list[LocationResponse],
+    summary="List locations for a group",
+    responses={
+        401: {"description": "Unauthorized"},
+        403: {"description": "Not a member of this group"},
+        404: {"description": "Group not found"},
+    },
+)
 async def list_locations(
     group_id: uuid.UUID,
     current_user: User = Depends(get_current_user),
@@ -43,6 +52,12 @@ async def list_locations(
     "/groups/{group_id}/locations",
     response_model=LocationResponse,
     status_code=status.HTTP_201_CREATED,
+    summary="Create a location for a group (organiser only)",
+    responses={
+        401: {"description": "Unauthorized"},
+        403: {"description": "Not an organiser"},
+        404: {"description": "Group not found"},
+    },
 )
 async def create_location(
     group_id: uuid.UUID,
@@ -61,7 +76,16 @@ async def create_location(
     return location
 
 
-@router.patch("/locations/{location_id}", response_model=LocationResponse)
+@router.patch(
+    "/locations/{location_id}",
+    response_model=LocationResponse,
+    summary="Update a location (organiser only)",
+    responses={
+        401: {"description": "Unauthorized"},
+        403: {"description": "Not an organiser"},
+        404: {"description": "Location not found"},
+    },
+)
 async def update_location(
     location_id: uuid.UUID,
     body: LocationUpdate,
@@ -84,7 +108,16 @@ async def update_location(
     return location
 
 
-@router.delete("/locations/{location_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/locations/{location_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Delete a location (organiser only)",
+    responses={
+        401: {"description": "Unauthorized"},
+        403: {"description": "Not an organiser"},
+        404: {"description": "Location not found"},
+    },
+)
 async def delete_location(
     location_id: uuid.UUID,
     current_user: User = Depends(get_current_user),

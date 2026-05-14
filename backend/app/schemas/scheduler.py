@@ -216,3 +216,17 @@ class RsvpOut(BaseModel):
     username: str | None = None
 
     model_config = {"from_attributes": True}
+
+
+class MyOccurrenceItem(BaseModel):
+    id: str
+    occurrence_date: str
+    start_time: str
+    end_time: str | None
+    status: str
+    notes: str | None
+    series_id: str
+    series_title: str
+    group_id: str
+    group_name: str
+    my_rsvp: str | None

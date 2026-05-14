@@ -71,3 +71,8 @@ class InvitePreview(BaseModel):
     group_description: str | None
     role: str
     inviter_username: str
+
+
+class AcceptInviteResponse(BaseModel):
+    message: str
+    role: str | None = None

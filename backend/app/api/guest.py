@@ -1,4 +1,3 @@
-import uuid
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -16,6 +15,7 @@ from app.models.scheduler import (
     PollResponse,
     Rsvp,
 )
+from app.schemas.common import MessageResponse
 from app.schemas.scheduler import (
     GuestContext,
     GuestPollRespond,
@@ -37,7 +37,16 @@ async def _resolve_token(token: str, session: AsyncSession) -> GuestToken:
     return gt
 
 
-@router.get("/{token}", response_model=GuestContext)
+@router.get(
+    "/{token}",
+    response_model=GuestContext,
+    summary="Resolve a guest token and return context (poll or RSVP)",
+    responses={
+        400: {"description": "Invalid guest token scope"},
+        404: {"description": "Guest link not found"},
+        410: {"description": "Guest link has expired"},
+    },
+)
 async def resolve_guest_token(token: str, session: AsyncSession = Depends(get_session)):
     gt = await _resolve_token(token, session)
 
@@ -108,7 +117,16 @@ async def resolve_guest_token(token: str, session: AsyncSession = Depends(get_se
     raise HTTPException(status_code=400, detail="Invalid guest token scope")
 
 
-@router.post("/{token}/rsvp", response_model=RsvpOut)
+@router.post(
+    "/{token}/rsvp",
+    response_model=RsvpOut,
+    summary="Submit or update a guest RSVP",
+    responses={
+        400: {"description": "Token is not for an RSVP or occurrence is cancelled"},
+        404: {"description": "Guest link not found"},
+        410: {"description": "Guest link has expired"},
+    },
+)
 async def guest_rsvp(
     token: str,
     body: GuestRsvpCreate,
@@ -152,7 +170,16 @@ async def guest_rsvp(
     return out
 
 
-@router.post("/{token}/poll")
+@router.post(
+    "/{token}/poll",
+    response_model=MessageResponse,
+    summary="Submit or update a guest poll response",
+    responses={
+        400: {"description": "Token is not for a poll or poll is not open"},
+        404: {"description": "Guest link not found"},
+        410: {"description": "Guest link has expired"},
+    },
+)
 async def guest_poll_respond(
     token: str,
     body: GuestPollRespond,

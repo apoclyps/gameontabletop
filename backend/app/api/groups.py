@@ -12,6 +12,7 @@ from app.dependencies import get_current_user
 from app.models.group import Group, GroupInvite, GroupMember
 from app.models.user import User
 from app.schemas.group import (
+    AcceptInviteResponse,
     GroupCreate,
     GroupResponse,
     GroupUpdate,
@@ -66,7 +67,13 @@ def _require_organiser(member: GroupMember) -> None:
 # ── groups ──────────────────────────────────────────────────────────────────
 
 
-@router.post("", status_code=status.HTTP_201_CREATED, response_model=GroupResponse)
+@router.post(
+    "",
+    status_code=status.HTTP_201_CREATED,
+    response_model=GroupResponse,
+    summary="Create a new group",
+    responses={401: {"description": "Unauthorized"}},
+)
 async def create_group(
     body: GroupCreate,
     current_user: User = Depends(get_current_user),
@@ -97,7 +104,12 @@ async def create_group(
     return resp
 
 
-@router.get("", response_model=list[GroupResponse])
+@router.get(
+    "",
+    response_model=list[GroupResponse],
+    summary="List groups the authenticated user belongs to",
+    responses={401: {"description": "Unauthorized"}},
+)
 async def list_groups(
     current_user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
@@ -122,7 +134,16 @@ async def list_groups(
     return groups
 
 
-@router.get("/{group_id}", response_model=GroupResponse)
+@router.get(
+    "/{group_id}",
+    response_model=GroupResponse,
+    summary="Get a group by ID",
+    responses={
+        401: {"description": "Unauthorized"},
+        403: {"description": "Not a member of this group"},
+        404: {"description": "Group not found"},
+    },
+)
 async def get_group(
     group_id: uuid.UUID,
     current_user: User = Depends(get_current_user),
@@ -138,7 +159,16 @@ async def get_group(
     return resp
 
 
-@router.patch("/{group_id}", response_model=GroupResponse)
+@router.patch(
+    "/{group_id}",
+    response_model=GroupResponse,
+    summary="Update group settings (organiser only)",
+    responses={
+        401: {"description": "Unauthorized"},
+        403: {"description": "Not a member or not an organiser"},
+        404: {"description": "Group not found"},
+    },
+)
 async def update_group(
     group_id: uuid.UUID,
     body: GroupUpdate,
@@ -164,7 +194,16 @@ async def update_group(
     return resp
 
 
-@router.delete("/{group_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/{group_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Delete a group (owner only)",
+    responses={
+        401: {"description": "Unauthorized"},
+        403: {"description": "Not the owner"},
+        404: {"description": "Group not found"},
+    },
+)
 async def delete_group(
     group_id: uuid.UUID,
     current_user: User = Depends(get_current_user),
@@ -180,7 +219,16 @@ async def delete_group(
 # ── members ──────────────────────────────────────────────────────────────────
 
 
-@router.get("/{group_id}/members", response_model=list[MemberResponse])
+@router.get(
+    "/{group_id}/members",
+    response_model=list[MemberResponse],
+    summary="List members of a group",
+    responses={
+        401: {"description": "Unauthorized"},
+        403: {"description": "Not a member of this group"},
+        404: {"description": "Group not found"},
+    },
+)
 async def list_members(
     group_id: uuid.UUID,
     current_user: User = Depends(get_current_user),
@@ -202,7 +250,16 @@ async def list_members(
     return members
 
 
-@router.delete("/{group_id}/members/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/{group_id}/members/{user_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Remove a member from a group (organiser only)",
+    responses={
+        401: {"description": "Unauthorized"},
+        403: {"description": "Not an organiser"},
+        404: {"description": "Member not found"},
+    },
+)
 async def remove_member(
     group_id: uuid.UUID,
     user_id: uuid.UUID,
@@ -225,7 +282,17 @@ async def remove_member(
 # ── invites ──────────────────────────────────────────────────────────────────
 
 
-@router.post("/{group_id}/invites", response_model=InviteResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/{group_id}/invites",
+    response_model=InviteResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Create a group invite link (organiser only)",
+    responses={
+        401: {"description": "Unauthorized"},
+        403: {"description": "Not an organiser"},
+        404: {"description": "Group not found"},
+    },
+)
 async def create_invite(
     group_id: uuid.UUID,
     body: InviteCreate,
@@ -256,7 +323,16 @@ async def create_invite(
     return invite
 
 
-@router.get("/{group_id}/invites", response_model=list[InviteResponse])
+@router.get(
+    "/{group_id}/invites",
+    response_model=list[InviteResponse],
+    summary="List active invite links for a group (organiser only)",
+    responses={
+        401: {"description": "Unauthorized"},
+        403: {"description": "Not an organiser"},
+        404: {"description": "Group not found"},
+    },
+)
 async def list_invites(
     group_id: uuid.UUID,
     current_user: User = Depends(get_current_user),
@@ -279,7 +355,12 @@ async def list_invites(
 # ── invite accept (no group_id in path) ───────────────────────────────────────
 
 
-@invites_router.get("/{token}", response_model=InvitePreview)
+@invites_router.get(
+    "/{token}",
+    response_model=InvitePreview,
+    summary="Preview a group invite before accepting",
+    responses={404: {"description": "Invite not found or expired"}},
+)
 async def preview_invite(
     token: str,
     session: AsyncSession = Depends(get_session),
@@ -296,7 +377,17 @@ async def preview_invite(
     )
 
 
-@invites_router.post("/{token}/accept", status_code=status.HTTP_200_OK)
+@invites_router.post(
+    "/{token}/accept",
+    response_model=AcceptInviteResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Accept a group invite and join the group",
+    responses={
+        401: {"description": "Unauthorized"},
+        404: {"description": "Invite not found or expired"},
+        410: {"description": "Invite already used"},
+    },
+)
 async def accept_invite(
     token: str,
     current_user: User = Depends(get_current_user),

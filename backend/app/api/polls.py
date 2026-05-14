@@ -26,8 +26,8 @@ from app.schemas.scheduler import (
     PollOptionCreate,
     PollOptionOut,
     PollOut,
-    PollRespond,
     PollResolve,
+    PollRespond,
 )
 from app.services.email import send_poll_created_email, send_poll_resolved_email
 
@@ -97,6 +97,12 @@ async def _build_poll_out(
     "/series/{series_id}/polls",
     response_model=PollOut,
     status_code=status.HTTP_201_CREATED,
+    summary="Create an availability poll for a series (organiser only)",
+    responses={
+        401: {"description": "Unauthorized"},
+        403: {"description": "Not an organiser"},
+        404: {"description": "Series not found"},
+    },
 )
 async def create_poll(
     series_id: uuid.UUID,
@@ -142,7 +148,16 @@ async def create_poll(
     return await _build_poll_out(poll, session, current_user.id)
 
 
-@router.get("/series/{series_id}/polls", response_model=list[PollOut])
+@router.get(
+    "/series/{series_id}/polls",
+    response_model=list[PollOut],
+    summary="List polls for a series",
+    responses={
+        401: {"description": "Unauthorized"},
+        403: {"description": "Not a member"},
+        404: {"description": "Series not found"},
+    },
+)
 async def list_polls(
     series_id: uuid.UUID,
     current_user: User = Depends(get_current_user),
@@ -164,7 +179,16 @@ async def list_polls(
     return [await _build_poll_out(p, session, current_user.id) for p in polls]
 
 
-@router.get("/polls/{poll_id}", response_model=PollOut)
+@router.get(
+    "/polls/{poll_id}",
+    response_model=PollOut,
+    summary="Get a poll with options and response counts",
+    responses={
+        401: {"description": "Unauthorized"},
+        403: {"description": "Not a member"},
+        404: {"description": "Poll not found"},
+    },
+)
 async def get_poll(
     poll_id: uuid.UUID,
     current_user: User = Depends(get_current_user),
@@ -174,7 +198,18 @@ async def get_poll(
     return await _build_poll_out(poll, session, current_user.id)
 
 
-@router.post("/polls/{poll_id}/options", response_model=PollOptionOut, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/polls/{poll_id}/options",
+    response_model=PollOptionOut,
+    status_code=status.HTTP_201_CREATED,
+    summary="Add a date option to a poll (organiser only)",
+    responses={
+        400: {"description": "Poll is not open"},
+        401: {"description": "Unauthorized"},
+        403: {"description": "Not an organiser"},
+        404: {"description": "Poll not found"},
+    },
+)
 async def add_poll_option(
     poll_id: uuid.UUID,
     body: PollOptionCreate,
@@ -199,7 +234,17 @@ async def add_poll_option(
     )
 
 
-@router.delete("/polls/{poll_id}/options/{option_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/polls/{poll_id}/options/{option_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Remove a date option from a poll (organiser only)",
+    responses={
+        400: {"description": "Poll is not open"},
+        401: {"description": "Unauthorized"},
+        403: {"description": "Not an organiser"},
+        404: {"description": "Poll or option not found"},
+    },
+)
 async def remove_poll_option(
     poll_id: uuid.UUID,
     option_id: uuid.UUID,
@@ -219,7 +264,17 @@ async def remove_poll_option(
     await session.commit()
 
 
-@router.post("/polls/{poll_id}/respond", response_model=PollOut)
+@router.post(
+    "/polls/{poll_id}/respond",
+    response_model=PollOut,
+    summary="Submit or update availability responses for a poll",
+    responses={
+        400: {"description": "Poll is not open"},
+        401: {"description": "Unauthorized"},
+        403: {"description": "Not a member"},
+        404: {"description": "Poll not found"},
+    },
+)
 async def respond_to_poll(
     poll_id: uuid.UUID,
     body: PollRespond,
@@ -235,7 +290,17 @@ async def respond_to_poll(
     return await _build_poll_out(poll, session, current_user.id)
 
 
-@router.post("/polls/{poll_id}/resolve", response_model=PollOut)
+@router.post(
+    "/polls/{poll_id}/resolve",
+    response_model=PollOut,
+    summary="Resolve a poll by picking the winning date and creating an occurrence (organiser only)",
+    responses={
+        400: {"description": "Poll already resolved or invalid option"},
+        401: {"description": "Unauthorized"},
+        403: {"description": "Not an organiser"},
+        404: {"description": "Poll not found"},
+    },
+)
 async def resolve_poll(
     poll_id: uuid.UUID,
     body: PollResolve,
@@ -272,9 +337,10 @@ async def resolve_poll(
     await session.refresh(poll)
     await session.refresh(occ)
 
-    group = await session.get(Group, series.group_id)
     members_result = await session.execute(
-        select(User).join(GroupMember, User.id == GroupMember.user_id).where(GroupMember.group_id == series.group_id)
+        select(User)
+        .join(GroupMember, User.id == GroupMember.user_id)
+        .where(GroupMember.group_id == series.group_id)
     )
     occ_url = f"{settings.frontend_url}/occurrences/{occ.id}"
     chosen_date_str = chosen.proposed_date.strftime("%A, %d %B %Y")
@@ -285,7 +351,17 @@ async def resolve_poll(
     return await _build_poll_out(poll, session, current_user.id)
 
 
-@router.post("/polls/{poll_id}/guest-link", response_model=GuestTokenOut, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/polls/{poll_id}/guest-link",
+    response_model=GuestTokenOut,
+    status_code=status.HTTP_201_CREATED,
+    summary="Create a guest link for unauthenticated poll responses (organiser only)",
+    responses={
+        401: {"description": "Unauthorized"},
+        403: {"description": "Not an organiser"},
+        404: {"description": "Poll not found"},
+    },
+)
 async def create_poll_guest_link(
     poll_id: uuid.UUID,
     current_user: User = Depends(get_current_user),
@@ -310,7 +386,17 @@ async def create_poll_guest_link(
     return GuestTokenOut(token=raw_token, url=url, expires_at=expires_at)
 
 
-@router.post("/occurrences/{occurrence_id}/guest-link", response_model=GuestTokenOut, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/occurrences/{occurrence_id}/guest-link",
+    response_model=GuestTokenOut,
+    status_code=status.HTTP_201_CREATED,
+    summary="Create a guest RSVP link for an occurrence (organiser only)",
+    responses={
+        401: {"description": "Unauthorized"},
+        403: {"description": "Not an organiser"},
+        404: {"description": "Occurrence not found"},
+    },
+)
 async def create_occurrence_guest_link(
     occurrence_id: uuid.UUID,
     current_user: User = Depends(get_current_user),

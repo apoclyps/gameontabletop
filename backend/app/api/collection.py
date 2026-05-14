@@ -1,5 +1,4 @@
 import uuid
-from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from sqlalchemy import and_, select
@@ -9,7 +8,12 @@ from app.database import get_session
 from app.dependencies import get_current_user
 from app.models.collection import UserGameCollection
 from app.models.user import User
-from app.schemas.collection import CollectionEntryCreate, CollectionEntryResponse, CollectionEntryUpdate
+from app.schemas.collection import (
+    CollectionEntryCreate,
+    CollectionEntryResponse,
+    CollectionEntryUpdate,
+    UserPublicProfileResponse,
+)
 from app.services.collection import is_friend
 
 router = APIRouter(tags=["collection"])
@@ -34,7 +38,12 @@ async def get_optional_user(request: Request, session: AsyncSession = Depends(ge
         return None
 
 
-@router.get("/users/me/collection", response_model=list[CollectionEntryResponse])
+@router.get(
+    "/users/me/collection",
+    response_model=list[CollectionEntryResponse],
+    summary="List the authenticated user's game collection",
+    responses={401: {"description": "Unauthorized"}},
+)
 async def list_my_collection(
     status: str | None = None,
     current_user: User = Depends(get_current_user),
@@ -52,6 +61,11 @@ async def list_my_collection(
     "/users/me/collection",
     response_model=CollectionEntryResponse,
     status_code=status.HTTP_201_CREATED,
+    summary="Add a game to the authenticated user's collection",
+    responses={
+        401: {"description": "Unauthorized"},
+        409: {"description": "Game with this BGG ID already in collection"},
+    },
 )
 async def add_to_collection(
     body: CollectionEntryCreate,
@@ -94,7 +108,16 @@ async def add_to_collection(
     return entry
 
 
-@router.patch("/users/me/collection/{entry_id}", response_model=CollectionEntryResponse)
+@router.patch(
+    "/users/me/collection/{entry_id}",
+    response_model=CollectionEntryResponse,
+    summary="Update a collection entry",
+    responses={
+        401: {"description": "Unauthorized"},
+        403: {"description": "Not your collection entry"},
+        404: {"description": "Collection entry not found"},
+    },
+)
 async def update_collection_entry(
     entry_id: uuid.UUID,
     body: CollectionEntryUpdate,
@@ -116,7 +139,16 @@ async def update_collection_entry(
     return entry
 
 
-@router.delete("/users/me/collection/{entry_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/users/me/collection/{entry_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Remove a game from the authenticated user's collection",
+    responses={
+        401: {"description": "Unauthorized"},
+        403: {"description": "Not your collection entry"},
+        404: {"description": "Collection entry not found"},
+    },
+)
 async def delete_collection_entry(
     entry_id: uuid.UUID,
     current_user: User = Depends(get_current_user),
@@ -133,7 +165,12 @@ async def delete_collection_entry(
     return Response(status_code=204)
 
 
-@router.get("/users/{user_id}/profile")
+@router.get(
+    "/users/{user_id}/profile",
+    response_model=UserPublicProfileResponse,
+    summary="Get a user's public profile by ID",
+    responses={404: {"description": "User not found"}},
+)
 async def get_user_profile(
     user_id: uuid.UUID,
     session: AsyncSession = Depends(get_session),
@@ -149,7 +186,12 @@ async def get_user_profile(
     }
 
 
-@router.get("/users/{user_id}/collection", response_model=list[CollectionEntryResponse])
+@router.get(
+    "/users/{user_id}/collection",
+    response_model=list[CollectionEntryResponse],
+    summary="Get a user's game collection (visibility-filtered)",
+    responses={401: {"description": "Unauthorized"}},
+)
 async def get_user_collection(
     user_id: uuid.UUID,
     request: Request,
