@@ -24,9 +24,9 @@ def decode_token(token: str) -> dict:
     return jwt.decode(token, settings.secret_key, algorithms=["HS256"])
 
 
-def create_access_token(user_id: str) -> str:
+def create_access_token(user_id: str, is_admin: bool = False) -> str:
     return _create_token(
-        {"sub": user_id, "type": "access"},
+        {"sub": user_id, "type": "access", "is_admin": is_admin},
         timedelta(minutes=settings.access_token_expire_minutes),
     )
 

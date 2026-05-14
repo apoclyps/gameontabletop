@@ -1,5 +1,5 @@
 import { createRouter, createWebHistory } from "vue-router";
-import { isAuthenticated } from "../services/auth.js";
+import { isAdmin, isAuthenticated } from "../services/auth.js";
 
 const routes = [
   { path: "/", redirect: "/dashboard" },
@@ -129,6 +129,16 @@ const routes = [
     meta: { layout: "auth", title: "Friend invite" },
   },
   {
+    path: "/admin",
+    component: () => import("../pages/AdminPage.vue"),
+    meta: { layout: "app", requiresAuth: true, requiresAdmin: true, title: "Admin" },
+  },
+  {
+    path: "/admin/users",
+    component: () => import("../pages/AdminUsersPage.vue"),
+    meta: { layout: "app", requiresAuth: true, requiresAdmin: true, title: "Admin — Users" },
+  },
+  {
     path: "/:pathMatch(.*)*",
     component: () => import("../pages/NotFoundPage.vue"),
     meta: { layout: "auth", title: "Page not found" },
@@ -144,6 +154,7 @@ router.beforeEach((to) => {
   const authed = isAuthenticated();
   if (to.meta.requiresAuth && !authed) return `/login?next=${encodeURIComponent(to.fullPath)}`;
   if (to.meta.guestOnly && authed) return "/dashboard";
+  if (to.meta.requiresAdmin && !isAdmin()) return "/dashboard";
 });
 
 router.afterEach((to) => {

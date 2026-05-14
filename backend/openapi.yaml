@@ -6,6 +6,125 @@ info:
     RSVPs.
   version: 1.0.0
 paths:
+  /api/admin/users:
+    get:
+      tags:
+      - admin
+      summary: List all users (admin only)
+      operationId: list_users_api_admin_users_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: page
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          default: 1
+          title: Page
+      - name: page_size
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 100
+          minimum: 1
+          default: 20
+          title: Page Size
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminUsersPage'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Admin access required
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/admin/users/{user_id}/role:
+    patch:
+      tags:
+      - admin
+      summary: Update a user's admin role (admin only)
+      operationId: update_user_role_api_admin_users__user_id__role_patch
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: user_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: User Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminRoleUpdate'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminUserItem'
+        '400':
+          description: Cannot demote yourself
+        '401':
+          description: Unauthorized
+        '403':
+          description: Admin access required
+        '404':
+          description: User not found
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/admin/users/{user_id}:
+    delete:
+      tags:
+      - admin
+      summary: Disable a user account (admin only)
+      operationId: disable_user_api_admin_users__user_id__delete
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: user_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: User Id
+      responses:
+        '204':
+          description: Successful Response
+        '400':
+          description: Cannot disable your own account
+        '401':
+          description: Unauthorized
+        '403':
+          description: Admin access required
+        '404':
+          description: User not found
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /api/auth/register:
     post:
       tags:
@@ -2475,6 +2594,79 @@ components:
       required:
       - message
       title: AcceptInviteResponse
+    AdminRoleUpdate:
+      properties:
+        is_admin:
+          type: boolean
+          title: Is Admin
+      type: object
+      required:
+      - is_admin
+      title: AdminRoleUpdate
+    AdminUserItem:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        email:
+          type: string
+          title: Email
+        username:
+          type: string
+          title: Username
+        display_name:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Display Name
+        is_active:
+          type: boolean
+          title: Is Active
+        is_verified:
+          type: boolean
+          title: Is Verified
+        is_admin:
+          type: boolean
+          title: Is Admin
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+      type: object
+      required:
+      - id
+      - email
+      - username
+      - display_name
+      - is_active
+      - is_verified
+      - is_admin
+      - created_at
+      title: AdminUserItem
+    AdminUsersPage:
+      properties:
+        users:
+          items:
+            $ref: '#/components/schemas/AdminUserItem'
+          type: array
+          title: Users
+        total:
+          type: integer
+          title: Total
+        page:
+          type: integer
+          title: Page
+        page_size:
+          type: integer
+          title: Page Size
+      type: object
+      required:
+      - users
+      - total
+      - page
+      - page_size
+      title: AdminUsersPage
     BGGGameResponse:
       properties:
         bgg_id:
@@ -4511,6 +4703,9 @@ components:
         is_verified:
           type: boolean
           title: Is Verified
+        is_admin:
+          type: boolean
+          title: Is Admin
         created_at:
           type: string
           format: date-time
@@ -4526,6 +4721,7 @@ components:
       - profile_public
       - stats_public
       - is_verified
+      - is_admin
       - created_at
       title: UserResponse
     ValidationError:

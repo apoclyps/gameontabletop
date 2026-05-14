@@ -24,6 +24,7 @@
           <NavItem to="/game-nights">Game Nights</NavItem>
           <NavItem to="/collection">Games</NavItem>
           <NavItem to="/friends">Friends</NavItem>
+          <NavItem v-if="user?.is_admin" to="/admin">Admin</NavItem>
         </nav>
 
         <!-- Right side controls -->
@@ -144,6 +145,9 @@
                 <DrawerItem to="/friends" @click="drawerOpen = false">
                   <UserGroupIcon class="w-5 h-5" /> Friends
                 </DrawerItem>
+                <DrawerItem v-if="user?.is_admin" to="/admin" @click="drawerOpen = false">
+                  <ShieldCheckIcon class="w-5 h-5" /> Admin
+                </DrawerItem>
                 <div class="border-t border-slate-200 dark:border-slate-700 my-2" />
                 <DrawerItem to="/profile" @click="drawerOpen = false">
                   <UserCircleIcon class="w-5 h-5" /> Profile
@@ -196,6 +200,7 @@ import {
   HomeIcon,
   MoonIcon,
   PuzzlePieceIcon,
+  ShieldCheckIcon,
   SunIcon,
   UserCircleIcon,
   UserGroupIcon,

@@ -4,6 +4,17 @@ export function isAuthenticated() {
   return !!getTokens().access;
 }
 
+export function isAdmin() {
+  const { access } = getTokens();
+  if (!access) return false;
+  try {
+    const payload = JSON.parse(atob(access.split(".")[1]));
+    return payload.is_admin === true;
+  } catch {
+    return false;
+  }
+}
+
 export async function register(email, username, password) {
   const res = await request("/api/auth/register", {
     method: "POST",

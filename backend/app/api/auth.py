@@ -97,7 +97,7 @@ async def login(body: LoginRequest, session: AsyncSession = Depends(get_session)
         )
 
     return TokenResponse(
-        access_token=create_access_token(str(user.id)),
+        access_token=create_access_token(str(user.id), user.is_admin),
         refresh_token=create_refresh_token(str(user.id)),
     )
 
@@ -140,7 +140,7 @@ async def refresh(body: RefreshRequest, session: AsyncSession = Depends(get_sess
         )
 
     return TokenResponse(
-        access_token=create_access_token(str(user.id)),
+        access_token=create_access_token(str(user.id), user.is_admin),
         refresh_token=create_refresh_token(str(user.id)),
     )
 

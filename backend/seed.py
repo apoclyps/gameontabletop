@@ -11,6 +11,7 @@ Usage:
     DATABASE_URL=postgresql+asyncpg://... uv run python seed.py
 
 Seed accounts (password: Seed@1234!):
+    admin@example.com   @admin   site administrator (is_admin=True)
     alice@example.com   @alice   organiser, The Tabletop Collective
     bob@example.com     @bob     organiser, Board Game Basement
     carol@example.com   @carol
@@ -44,6 +45,15 @@ DATABASE_URL = os.environ.get(
 SEED_PASSWORD = "Seed@1234!"
 
 # ─── Seed data ────────────────────────────────────────────────────────────────
+
+ADMIN_USER = {
+    "email": "admin@example.com",
+    "username": "admin",
+    "display_name": "Site Admin",
+    "bio": "Platform administrator.",
+    "profile_public": False,
+    "stats_public": False,
+}
 
 USERS = [
     {
@@ -351,6 +361,35 @@ GROUPS = [
 # ─── Seeder functions ─────────────────────────────────────────────────────────
 
 
+async def _seed_admin(session: AsyncSession, hashed_pw: str) -> None:
+    data = ADMIN_USER
+    result = await session.execute(select(User).where(User.email == data["email"]))
+    user = result.scalar_one_or_none()
+    if user is None:
+        user = User(
+            email=data["email"],
+            username=data["username"],
+            display_name=data["display_name"],
+            bio=data["bio"],
+            hashed_password=hashed_pw,
+            is_active=True,
+            is_verified=True,
+            is_admin=True,
+            profile_public=data["profile_public"],
+            stats_public=data["stats_public"],
+        )
+        session.add(user)
+        await session.flush()
+        print(f"  + {data['username']} (admin)")
+    else:
+        if not user.is_admin:
+            user.is_admin = True
+            await session.flush()
+            print(f"  ~ {data['username']} (promoted to admin)")
+        else:
+            print(f"  ~ {data['username']} (exists, admin)")
+
+
 async def _seed_users(session: AsyncSession, hashed_pw: str) -> dict[str, User]:
     users: dict[str, User] = {}
     for data in USERS:
@@ -587,6 +626,10 @@ async def _seed_groups(session: AsyncSession, users: dict[str, User]) -> None:
 async def _run(session: AsyncSession) -> None:
     hashed_pw = hash_password(SEED_PASSWORD)
 
+    print("\n[admin]")
+    await _seed_admin(session, hashed_pw)
+    await session.commit()
+
     print("\n[users]")
     users = await _seed_users(session, hashed_pw)
     await session.commit()
@@ -617,6 +660,7 @@ async def main() -> None:
     await engine.dispose()
 
     print("\nDone. Seed accounts (password: Seed@1234!):")
+    print(f"  {ADMIN_USER['email']:<30}  @{ADMIN_USER['username']}  (admin)")
     for u in USERS:
         print(f"  {u['email']:<30}  @{u['username']}")
 

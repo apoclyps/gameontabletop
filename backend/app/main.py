@@ -1,6 +1,7 @@
 from fastapi import APIRouter, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.api.admin import router as admin_router
 from app.api.auth import router as auth_router
 from app.api.bgg import router as bgg_router
 from app.api.collection import router as collection_router
@@ -19,8 +20,9 @@ from app.config import settings
 app = FastAPI(
     title="Game On Tabletop API",
     description=(
-        "REST API for Game On Tabletop — a platform for organising tabletop game nights, "
-        "tracking game collections, scheduling events, and managing group RSVPs."
+        "REST API for Game On Tabletop — a platform for organising tabletop "
+        "game nights, tracking game collections, scheduling events, "
+        "and managing group RSVPs."
     ),
     version="1.0.0",
 )
@@ -35,6 +37,7 @@ app.add_middleware(
 
 api_router = APIRouter(prefix="/api")
 
+api_router.include_router(admin_router)
 api_router.include_router(auth_router)
 api_router.include_router(bgg_router)
 api_router.include_router(users_router)
