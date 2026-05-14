@@ -95,7 +95,11 @@ async def _fetch_xml(url: str) -> str:
 
     async with httpx.AsyncClient(timeout=15, follow_redirects=True) as client:
         for attempt in range(4):
-            resp = await client.get(url, headers=_auth_headers())
+            try:
+                resp = await client.get(url, headers=_auth_headers())
+            except httpx.TimeoutException:
+                await asyncio.sleep(2 * (attempt + 1))
+                continue
             if resp.status_code == 200:
                 return resp.text
             if resp.status_code == 202:

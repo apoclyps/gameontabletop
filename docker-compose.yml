@@ -23,12 +23,13 @@ services:
       - "8000:8000"
     environment:
       DATABASE_URL: postgresql+asyncpg://postgres:postgres@db:5432/app
+      BGG_APPLICATION_TOKEN: ${BGG_APPLICATION_TOKEN}
     depends_on:
       db:
         condition: service_healthy
     volumes:
       - ./backend:/app
-    command: uv run uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 
   frontend:
     build:

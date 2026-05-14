@@ -11,9 +11,6 @@ class Settings(BaseSettings):
     verification_token_expire_hours: int = 24
     password_reset_expire_hours: int = 2
 
-    sendgrid_api_key: str = ""
-    sendgrid_from_email: str = ""
-    sendgrid_from_name: str = "Game On Tabletop"
     frontend_url: str = "http://localhost:5173"
 
     supabase_url: str = ""

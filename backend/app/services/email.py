@@ -1,27 +1,13 @@
 import logging
 
-from sendgrid import SendGridAPIClient
-from sendgrid.helpers.mail import Mail
-
 from app.config import settings
 
 logger = logging.getLogger(__name__)
 
 
 def _send(to_email: str, subject: str, html_content: str) -> None:
-    if not settings.sendgrid_api_key:
-        logger.warning("SENDGRID_API_KEY not set — skipping email to %s", to_email)
-        return
-    message = Mail(
-        from_email=(settings.sendgrid_from_email, settings.sendgrid_from_name),
-        to_emails=to_email,
-        subject=subject,
-        html_content=html_content,
-    )
-    try:
-        SendGridAPIClient(settings.sendgrid_api_key).send(message)
-    except Exception:
-        logger.exception("Failed to send email to %s", to_email)
+    # Email sending not yet implemented — Resend integration pending.
+    logger.info("Email suppressed (no provider configured): [%s] → %s", subject, to_email)
 
 
 def send_verification_email(to_email: str, token: str) -> None:

@@ -66,6 +66,25 @@ jobs:
       - name: Install Vercel CLI
         run: npm install -g vercel@latest
 
+      - name: Sync BGG_APPLICATION_TOKEN to backend Vercel env
+        run: |
+          existing=$(curl -sf "https://api.vercel.com/v9/projects/${{ secrets.VERCEL_BACKEND_PROJECT_ID }}/env" \
+            -H "Authorization: Bearer ${{ secrets.VERCEL_TOKEN }}")
+          env_id=$(echo "$existing" | jq -r \
+            '.envs[]? | select(.key=="BGG_APPLICATION_TOKEN" and (.target[]? == "production")) | .id' | head -1)
+          payload=$(jq -cn --arg v "${{ secrets.BGG_APPLICATION_TOKEN }}" \
+            '{"key":"BGG_APPLICATION_TOKEN","value":$v,"type":"encrypted","target":["production"]}')
+          if [ -n "$env_id" ]; then
+            curl -sf -X PATCH "https://api.vercel.com/v9/projects/${{ secrets.VERCEL_BACKEND_PROJECT_ID }}/env/$env_id" \
+              -H "Authorization: Bearer ${{ secrets.VERCEL_TOKEN }}" \
+              -H "Content-Type: application/json" -d "$payload" > /dev/null
+          else
+            curl -sf -X POST "https://api.vercel.com/v10/projects/${{ secrets.VERCEL_BACKEND_PROJECT_ID }}/env" \
+              -H "Authorization: Bearer ${{ secrets.VERCEL_TOKEN }}" \
+              -H "Content-Type: application/json" -d "$payload" > /dev/null
+          fi
+          echo "BGG_APPLICATION_TOKEN synced to Vercel"
+
       - name: Sync CORS_ORIGINS to backend Vercel env
         run: |
           frontend_name=$(curl -sf "https://api.vercel.com/v9/projects/${{ secrets.VERCEL_FRONTEND_PROJECT_ID }}" \

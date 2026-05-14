@@ -1,0 +1,73 @@
+project_id = "gameontabletop"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[auth]
+enabled = true
+# Local dev site URL — overridden per environment via dashboard for production.
+site_url = "http://localhost:5173"
+# Exact redirect URLs allowed after auth flows.
+additional_redirect_urls = [
+  "http://localhost:5173/**",
+]
+jwt_expiry = 3600
+enable_refresh_token_rotation = true
+# Seconds a refresh token can be reused after expiry (prevents race conditions).
+refresh_token_reuse_interval = 10
+enable_signup = true
+enable_anonymous_sign_ins = false
+enable_manual_linking = false
+
+[auth.email]
+enable_signup = true
+# Require confirmation on both old and new address when changing email.
+double_confirm_changes = true
+# Users must verify their email before they can sign in.
+enable_confirmations = true
+min_password_length = 8
+
+[auth.email.template.confirmation]
+subject = "Confirm your Game On Tabletop account"
+content_path = "./supabase/templates/confirmation.html"
+
+[auth.email.template.recovery]
+subject = "Reset your Game On Tabletop password"
+content_path = "./supabase/templates/recovery.html"
+
+[auth.email.template.invite]
+subject = "You've been invited to Game On Tabletop"
+content_path = "./supabase/templates/invite.html"
+
+[auth.email.template.email_change]
+subject = "Confirm your email change — Game On Tabletop"
+content_path = "./supabase/templates/email_change.html"
+
+[db]
+port = 54322
+shadow_port = 54320
+major_version = 17
+
+[studio]
+enabled = true
+port = 54323
+api_url = "http://127.0.0.1"
+
+# Inbucket: local email-testing inbox. All outgoing emails land here during local dev.
+# View captured emails at http://localhost:54324
+[inbucket]
+enabled = true
+port = 54324
+smtp_port = 54325
+pop3_port = 54326
+
+[storage]
+enabled = true
+file_size_limit = "50MiB"
+
+[realtime]
+enabled = true
