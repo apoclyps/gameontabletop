@@ -9,8 +9,14 @@ async def is_friend(session: AsyncSession, user_a_id, user_b_id) -> bool:
     result = await session.execute(
         select(UserFriendship).where(
             or_(
-                and_(UserFriendship.requester_id == user_a_id, UserFriendship.addressee_id == user_b_id),
-                and_(UserFriendship.requester_id == user_b_id, UserFriendship.addressee_id == user_a_id),
+                and_(
+                    UserFriendship.requester_id == user_a_id,
+                    UserFriendship.addressee_id == user_b_id,
+                ),
+                and_(
+                    UserFriendship.requester_id == user_b_id,
+                    UserFriendship.addressee_id == user_a_id,
+                ),
             ),
             UserFriendship.status == "accepted",
         )
@@ -24,7 +30,10 @@ async def get_friend_ids(session: AsyncSession, user_id) -> list:
 
     result = await session.execute(
         select(UserFriendship).where(
-            or_(UserFriendship.requester_id == user_id, UserFriendship.addressee_id == user_id),
+            or_(
+                UserFriendship.requester_id == user_id,
+                UserFriendship.addressee_id == user_id,
+            ),
             UserFriendship.status == "accepted",
         )
     )

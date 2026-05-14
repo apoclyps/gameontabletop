@@ -1,20 +1,25 @@
-import uuid
 from unittest.mock import patch
 
-import pytest
 from sqlalchemy import select
 
 from app.models.user import User
 
 
-async def _register_login(client, db_session, email="u@test.com", username="testuser", password="Passw0rd!"):
+async def _register_login(
+    client, db_session, email="u@test.com", username="testuser", password="Passw0rd!"
+):
     with patch("app.services.email.send_verification_email"):
-        await client.post("/api/auth/register", json={"email": email, "username": username, "password": password})
+        await client.post(
+            "/api/auth/register",
+            json={"email": email, "username": username, "password": password},
+        )
     result = await db_session.execute(select(User).where(User.email == email))
     user = result.scalar_one()
     user.is_verified = True
     await db_session.commit()
-    r = await client.post("/api/auth/login", json={"email": email, "password": password})
+    r = await client.post(
+        "/api/auth/login", json={"email": email, "password": password}
+    )
     return r.json()["access_token"]
 
 
@@ -138,7 +143,9 @@ class TestMyCollection:
             headers=_auth(token),
         )
 
-        r = await client.get("/api/users/me/collection?status=own", headers=_auth(token))
+        r = await client.get(
+            "/api/users/me/collection?status=own", headers=_auth(token)
+        )
         assert r.status_code == 200
         results = r.json()
         assert len(results) == 1
@@ -164,7 +171,9 @@ class TestCollectionVisibility:
             headers=_auth(token_a),
         )
 
-        r = await client.get(f"/api/users/{user_a.id}/collection", headers=_auth(token_b))
+        r = await client.get(
+            f"/api/users/{user_a.id}/collection", headers=_auth(token_b)
+        )
         assert r.status_code == 200
         assert len(r.json()) == 1
         assert r.json()[0]["game_title"] == "Public Game"
@@ -198,7 +207,9 @@ class TestCollectionVisibility:
         )
         assert accept_r.status_code == 200
 
-        r = await client.get(f"/api/users/{user_a.id}/collection", headers=_auth(token_b))
+        r = await client.get(
+            f"/api/users/{user_a.id}/collection", headers=_auth(token_b)
+        )
         assert r.status_code == 200
         assert any(e["game_title"] == "Friends Game" for e in r.json())
 
@@ -211,11 +222,16 @@ class TestCollectionVisibility:
 
         await client.post(
             "/api/users/me/collection",
-            json={"game_title": "Friends Only Game", "collection_visible_to": "friends"},
+            json={
+                "game_title": "Friends Only Game",
+                "collection_visible_to": "friends",
+            },
             headers=_auth(token_a),
         )
 
-        r = await client.get(f"/api/users/{user_a.id}/collection", headers=_auth(token_b))
+        r = await client.get(
+            f"/api/users/{user_a.id}/collection", headers=_auth(token_b)
+        )
         assert r.status_code == 200
         assert r.json() == []
 
@@ -232,7 +248,9 @@ class TestCollectionVisibility:
             headers=_auth(token_a),
         )
 
-        r = await client.get(f"/api/users/{user_a.id}/collection", headers=_auth(token_b))
+        r = await client.get(
+            f"/api/users/{user_a.id}/collection", headers=_auth(token_b)
+        )
         assert r.status_code == 200
         assert r.json() == []
 
@@ -258,6 +276,8 @@ class TestCollectionVisibility:
             headers=_auth(token_a),
         )
 
-        r = await client.get(f"/api/users/{user_a.id}/collection", headers=_auth(token_a))
+        r = await client.get(
+            f"/api/users/{user_a.id}/collection", headers=_auth(token_a)
+        )
         assert r.status_code == 200
         assert len(r.json()) == 3

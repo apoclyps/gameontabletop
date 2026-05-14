@@ -1,20 +1,25 @@
-import uuid
 from unittest.mock import patch
 
-import pytest
 from sqlalchemy import select
 
 from app.models.user import User
 
 
-async def _register_login(client, db_session, email="u@test.com", username="testuser", password="Passw0rd!"):
+async def _register_login(
+    client, db_session, email="u@test.com", username="testuser", password="Passw0rd!"
+):
     with patch("app.services.email.send_verification_email"):
-        await client.post("/api/auth/register", json={"email": email, "username": username, "password": password})
+        await client.post(
+            "/api/auth/register",
+            json={"email": email, "username": username, "password": password},
+        )
     result = await db_session.execute(select(User).where(User.email == email))
     user = result.scalar_one()
     user.is_verified = True
     await db_session.commit()
-    r = await client.post("/api/auth/login", json={"email": email, "password": password})
+    r = await client.post(
+        "/api/auth/login", json={"email": email, "password": password}
+    )
     return r.json()["access_token"]
 
 

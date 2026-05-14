@@ -6,7 +6,6 @@ import pytest
 from httpx import AsyncClient
 from sqlalchemy import select
 
-from app.models.group import Group, GroupMember
 from app.models.scheduler import NightOccurrence, NightSeries
 from app.models.user import User
 
@@ -17,12 +16,20 @@ def no_email():
         yield
 
 
-async def _register_login(client, email="u@test.com", username="testuser", password="Passw0rd!"):
-    await client.post("/api/auth/register", json={"email": email, "username": username, "password": password})
+async def _register_login(
+    client, email="u@test.com", username="testuser", password="Passw0rd!"
+):
+    await client.post(
+        "/api/auth/register",
+        json={"email": email, "username": username, "password": password},
+    )
     from app.services.auth import create_verification_token
+
     token = create_verification_token(email)
     await client.get(f"/api/auth/verify-email?token={token}")
-    r = await client.post("/api/auth/login", json={"email": email, "password": password})
+    r = await client.post(
+        "/api/auth/login", json={"email": email, "password": password}
+    )
     return r.json()["access_token"]
 
 
@@ -30,10 +37,22 @@ def _auth(token):
     return {"Authorization": f"Bearer {token}"}
 
 
-async def _create_group_series_occurrence(client, db_session, token, *, is_public=True, occurrence_date=None, status="scheduled"):
+async def _create_group_series_occurrence(
+    client,
+    db_session,
+    token,
+    *,
+    is_public=True,
+    occurrence_date=None,
+    status="scheduled",
+):
     import uuid as _uuid
 
-    g = await client.post("/api/groups", json={"name": "Test Group", "is_public": is_public}, headers=_auth(token))
+    g = await client.post(
+        "/api/groups",
+        json={"name": "Test Group", "is_public": is_public},
+        headers=_auth(token),
+    )
     group_id = _uuid.UUID(g.json()["id"])
 
     result = await db_session.execute(select(User))
@@ -62,7 +81,9 @@ async def _create_group_series_occurrence(client, db_session, token, *, is_publi
 
 
 class TestPublicEvents:
-    async def test_returns_events_from_public_groups(self, client: AsyncClient, db_session):
+    async def test_returns_events_from_public_groups(
+        self, client: AsyncClient, db_session
+    ):
         token = await _register_login(client)
         await _create_group_series_occurrence(client, db_session, token, is_public=True)
 
@@ -74,7 +95,9 @@ class TestPublicEvents:
 
     async def test_excludes_private_groups(self, client: AsyncClient, db_session):
         token = await _register_login(client)
-        await _create_group_series_occurrence(client, db_session, token, is_public=False)
+        await _create_group_series_occurrence(
+            client, db_session, token, is_public=False
+        )
 
         r = await client.get("/api/public/events")
         assert r.status_code == 200
@@ -83,7 +106,9 @@ class TestPublicEvents:
     async def test_excludes_past_occurrences(self, client: AsyncClient, db_session):
         token = await _register_login(client)
         past = date.today() - timedelta(days=1)
-        await _create_group_series_occurrence(client, db_session, token, is_public=True, occurrence_date=past)
+        await _create_group_series_occurrence(
+            client, db_session, token, is_public=True, occurrence_date=past
+        )
 
         r = await client.get("/api/public/events")
         assert r.status_code == 200
@@ -91,7 +116,9 @@ class TestPublicEvents:
 
     async def test_excludes_non_scheduled_status(self, client: AsyncClient, db_session):
         token = await _register_login(client)
-        await _create_group_series_occurrence(client, db_session, token, is_public=True, status="cancelled")
+        await _create_group_series_occurrence(
+            client, db_session, token, is_public=True, status="cancelled"
+        )
 
         r = await client.get("/api/public/events")
         assert r.status_code == 200
@@ -127,7 +154,9 @@ class TestPublicProfile:
 
     async def test_same_404_for_private_and_nonexistent(self, client: AsyncClient):
         token = await _register_login(client)
-        await client.patch("/api/users/me", json={"profile_public": False}, headers=_auth(token))
+        await client.patch(
+            "/api/users/me", json={"profile_public": False}, headers=_auth(token)
+        )
         r_private = await client.get("/api/public/profile/testuser")
         r_missing = await client.get("/api/public/profile/nobody")
         assert r_private.status_code == r_missing.status_code == 404
@@ -177,13 +206,22 @@ class TestAvatarUpload:
         mock_client.__aexit__ = AsyncMock(return_value=None)
         mock_client.put = AsyncMock(return_value=mock_response)
 
-        with patch("app.api.users.settings") as mock_settings, patch("app.api.users.httpx.AsyncClient", return_value=mock_client):
+        with (
+            patch("app.api.users.settings") as mock_settings,
+            patch("app.api.users.httpx.AsyncClient", return_value=mock_client),
+        ):
             mock_settings.supabase_url = "https://test.supabase.co"
             mock_settings.supabase_service_role_key = "service-key"
 
             r = await client.post(
                 "/api/users/me/avatar",
-                files={"file": ("photo.jpg", io.BytesIO(b"\xff\xd8\xff" + b"0" * 100), "image/jpeg")},
+                files={
+                    "file": (
+                        "photo.jpg",
+                        io.BytesIO(b"\xff\xd8\xff" + b"0" * 100),
+                        "image/jpeg",
+                    )
+                },
                 headers=_auth(token),
             )
 
@@ -194,13 +232,17 @@ class TestAvatarUpload:
 
 
 class TestProfilePublicToggle:
-    async def test_patch_profile_public_false_hides_public_profile(self, client: AsyncClient):
+    async def test_patch_profile_public_false_hides_public_profile(
+        self, client: AsyncClient
+    ):
         token = await _register_login(client)
 
         r = await client.get("/api/public/profile/testuser")
         assert r.status_code == 200
 
-        await client.patch("/api/users/me", json={"profile_public": False}, headers=_auth(token))
+        await client.patch(
+            "/api/users/me", json={"profile_public": False}, headers=_auth(token)
+        )
 
         r = await client.get("/api/public/profile/testuser")
         assert r.status_code == 404

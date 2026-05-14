@@ -1,21 +1,27 @@
 from datetime import date, timedelta
 from unittest.mock import patch
 
-import pytest
 from httpx import AsyncClient
 from sqlalchemy import select
 
 from app.models.user import User
 
 
-async def _register_login(client, db_session, email="u@test.com", username="testuser", password="Passw0rd!"):
+async def _register_login(
+    client, db_session, email="u@test.com", username="testuser", password="Passw0rd!"
+):
     with patch("app.services.email.send_verification_email"):
-        await client.post("/api/auth/register", json={"email": email, "username": username, "password": password})
+        await client.post(
+            "/api/auth/register",
+            json={"email": email, "username": username, "password": password},
+        )
     result = await db_session.execute(select(User).where(User.email == email))
     user = result.scalar_one()
     user.is_verified = True
     await db_session.commit()
-    r = await client.post("/api/auth/login", json={"email": email, "password": password})
+    r = await client.post(
+        "/api/auth/login", json={"email": email, "password": password}
+    )
     return r.json()["access_token"]
 
 
@@ -26,11 +32,18 @@ def auth(token):
 async def _setup(client, db_session):
     """Create user, group, series and return token + ids."""
     token = await _register_login(client, db_session)
-    gr = await client.post("/api/groups", json={"name": "Test Group"}, headers=auth(token))
+    gr = await client.post(
+        "/api/groups", json={"name": "Test Group"}, headers=auth(token)
+    )
     group_id = gr.json()["id"]
     sr = await client.post(
         f"/api/groups/{group_id}/series",
-        json={"title": "Saturday Games", "recurrence": "weekly", "default_start_time": "19:00:00", "default_day_of_week": 5},
+        json={
+            "title": "Saturday Games",
+            "recurrence": "weekly",
+            "default_start_time": "19:00:00",
+            "default_day_of_week": 5,
+        },
         headers=auth(token),
     )
     series_id = sr.json()["id"]
@@ -61,9 +74,15 @@ class TestCreatePoll:
     async def test_member_cannot_create_poll(self, client: AsyncClient, db_session):
         with patch("app.api.polls.send_poll_created_email"):
             token, group_id, series_id = await _setup(client, db_session)
-            token2 = await _register_login(client, db_session, email="b@test.com", username="user2")
+            token2 = await _register_login(
+                client, db_session, email="b@test.com", username="user2"
+            )
             # join group
-            inv = await client.post(f"/api/groups/{group_id}/invites", json={"expires_in_days": 7}, headers=auth(token))
+            inv = await client.post(
+                f"/api/groups/{group_id}/invites",
+                json={"expires_in_days": 7},
+                headers=auth(token),
+            )
             inv_token = inv.json()["token"]
             await client.post(f"/api/invites/{inv_token}/accept", headers=auth(token2))
 
@@ -77,7 +96,9 @@ class TestCreatePoll:
     async def test_nonmember_cannot_create_poll(self, client: AsyncClient, db_session):
         with patch("app.api.polls.send_poll_created_email"):
             token, _, series_id = await _setup(client, db_session)
-            token2 = await _register_login(client, db_session, email="x@test.com", username="outsider")
+            token2 = await _register_login(
+                client, db_session, email="x@test.com", username="outsider"
+            )
             r = await client.post(
                 f"/api/series/{series_id}/polls",
                 json={"title": "Nope", "options": []},
@@ -139,7 +160,10 @@ class TestPollRespond:
 
 class TestResolvePoll:
     async def test_resolve_creates_occurrence(self, client: AsyncClient, db_session):
-        with patch("app.api.polls.send_poll_created_email"), patch("app.api.polls.send_poll_resolved_email"):
+        with (
+            patch("app.api.polls.send_poll_created_email"),
+            patch("app.api.polls.send_poll_resolved_email"),
+        ):
             token, _, series_id = await _setup(client, db_session)
             poll_r = await client.post(
                 f"/api/series/{series_id}/polls",
@@ -160,7 +184,9 @@ class TestResolvePoll:
         assert data["chosen_option_id"] == option_id
 
         # Verify occurrence was created
-        occs_r = await client.get(f"/api/series/{series_id}/occurrences", headers=auth(token))
+        occs_r = await client.get(
+            f"/api/series/{series_id}/occurrences", headers=auth(token)
+        )
         occs = occs_r.json()
         assert any(o["occurrence_date"] == OPTION["proposed_date"] for o in occs)
 
@@ -175,9 +201,17 @@ class TestResolvePoll:
             poll = poll_r.json()
             option_id = poll["options"][0]["id"]
 
-            token2 = await _register_login(client, db_session, email="b@test.com", username="user2")
-            inv = await client.post(f"/api/groups/{group_id}/invites", json={"expires_in_days": 7}, headers=auth(token))
-            await client.post(f"/api/invites/{inv.json()['token']}/accept", headers=auth(token2))
+            token2 = await _register_login(
+                client, db_session, email="b@test.com", username="user2"
+            )
+            inv = await client.post(
+                f"/api/groups/{group_id}/invites",
+                json={"expires_in_days": 7},
+                headers=auth(token),
+            )
+            await client.post(
+                f"/api/invites/{inv.json()['token']}/accept", headers=auth(token2)
+            )
 
             r = await client.post(
                 f"/api/polls/{poll['id']}/resolve",
@@ -198,7 +232,9 @@ class TestGuestLink:
             )
             poll = poll_r.json()
 
-        r = await client.post(f"/api/polls/{poll['id']}/guest-link", headers=auth(token))
+        r = await client.post(
+            f"/api/polls/{poll['id']}/guest-link", headers=auth(token)
+        )
         assert r.status_code == 201
         data = r.json()
         assert "token" in data
@@ -214,7 +250,9 @@ class TestGuestLink:
             )
             poll = poll_r.json()
 
-        link_r = await client.post(f"/api/polls/{poll['id']}/guest-link", headers=auth(token))
+        link_r = await client.post(
+            f"/api/polls/{poll['id']}/guest-link", headers=auth(token)
+        )
         guest_token = link_r.json()["token"]
 
         r = await client.get(f"/api/guest/{guest_token}")
@@ -234,12 +272,17 @@ class TestGuestLink:
             poll = poll_r.json()
             option_id = poll["options"][0]["id"]
 
-        link_r = await client.post(f"/api/polls/{poll['id']}/guest-link", headers=auth(token))
+        link_r = await client.post(
+            f"/api/polls/{poll['id']}/guest-link", headers=auth(token)
+        )
         guest_token = link_r.json()["token"]
 
         r = await client.post(
             f"/api/guest/{guest_token}/poll",
-            json={"guest_name": "Guest Alice", "responses": [{"option_id": option_id, "response": "yes"}]},
+            json={
+                "guest_name": "Guest Alice",
+                "responses": [{"option_id": option_id, "response": "yes"}],
+            },
         )
         assert r.status_code == 200
 
@@ -249,8 +292,10 @@ class TestGuestLink:
 
     async def test_expired_token_rejected(self, client: AsyncClient, db_session):
         from datetime import timedelta
-        from app.models.scheduler import GuestToken
+
         from sqlalchemy import select as sa_select
+
+        from app.models.scheduler import GuestToken
 
         with patch("app.api.polls.send_poll_created_email"):
             token, _, series_id = await _setup(client, db_session)
@@ -261,12 +306,17 @@ class TestGuestLink:
             )
             poll = poll_r.json()
 
-        link_r = await client.post(f"/api/polls/{poll['id']}/guest-link", headers=auth(token))
+        link_r = await client.post(
+            f"/api/polls/{poll['id']}/guest-link", headers=auth(token)
+        )
         guest_token_str = link_r.json()["token"]
 
         # Expire the token
         from datetime import datetime, timezone
-        result = await db_session.execute(sa_select(GuestToken).where(GuestToken.token == guest_token_str))
+
+        result = await db_session.execute(
+            sa_select(GuestToken).where(GuestToken.token == guest_token_str)
+        )
         gt = result.scalar_one()
         gt.expires_at = datetime.now(timezone.utc) - timedelta(hours=1)
         await db_session.commit()

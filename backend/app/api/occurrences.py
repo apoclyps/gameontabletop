@@ -134,7 +134,9 @@ async def create_occurrence(
     if member.role != "organiser":
         raise HTTPException(status_code=403, detail="Organiser access required")
 
-    occ = NightOccurrence(series_id=series_id, is_auto_generated=False, **body.model_dump())
+    occ = NightOccurrence(
+        series_id=series_id, is_auto_generated=False, **body.model_dump()
+    )
     session.add(occ)
     await session.commit()
     await session.refresh(occ)
@@ -218,7 +220,9 @@ async def upsert_rsvp(
 ):
     occ, _ = await _get_occurrence_member(occurrence_id, current_user, session)
     if occ.status == "cancelled":
-        raise HTTPException(status_code=400, detail="Cannot RSVP to a cancelled occurrence")
+        raise HTTPException(
+            status_code=400, detail="Cannot RSVP to a cancelled occurrence"
+        )
 
     result = await session.execute(
         select(Rsvp)
@@ -335,7 +339,9 @@ async def upload_photo(
 
     content_type = file.content_type or ""
     if content_type not in _ALLOWED_PHOTO_TYPES:
-        raise HTTPException(status_code=400, detail="File must be image/jpeg, image/png, or image/webp")
+        raise HTTPException(
+            status_code=400, detail="File must be image/jpeg, image/png, or image/webp"
+        )
 
     data = await file.read(_MAX_PHOTO_BYTES + 1)
     if len(data) > _MAX_PHOTO_BYTES:
@@ -363,7 +369,9 @@ async def upload_photo(
         raise HTTPException(status_code=502, detail="Storage upload failed")
 
     timestamp = int(time.time())
-    cdn_url = f"{settings.supabase_url}/storage/v1/object/public/{object_path}?t={timestamp}"
+    cdn_url = (
+        f"{settings.supabase_url}/storage/v1/object/public/{object_path}?t={timestamp}"
+    )
 
     photo = OccurrencePhoto(
         id=photo_id,
@@ -411,9 +419,13 @@ async def delete_photo(
     await session.commit()
 
 
-async def _rsvp_counts(occurrence_id: uuid.UUID, session: AsyncSession) -> dict[str, int]:
+async def _rsvp_counts(
+    occurrence_id: uuid.UUID, session: AsyncSession
+) -> dict[str, int]:
     counts: dict[str, int] = {"yes": 0, "no": 0, "maybe": 0}
-    result = await session.execute(select(Rsvp).where(Rsvp.occurrence_id == occurrence_id))
+    result = await session.execute(
+        select(Rsvp).where(Rsvp.occurrence_id == occurrence_id)
+    )
     for rsvp in result.scalars().all():
         if rsvp.response in counts:
             counts[rsvp.response] += 1

@@ -19,7 +19,9 @@ from app.services.collection import is_friend
 router = APIRouter(tags=["collection"])
 
 
-async def get_optional_user(request: Request, session: AsyncSession = Depends(get_session)):
+async def get_optional_user(
+    request: Request, session: AsyncSession = Depends(get_session)
+):
     """Returns current user or None if not authenticated."""
     try:
         auth_header = request.headers.get("Authorization", "")
@@ -49,7 +51,9 @@ async def list_my_collection(
     current_user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
 ):
-    query = select(UserGameCollection).where(UserGameCollection.user_id == current_user.id)
+    query = select(UserGameCollection).where(
+        UserGameCollection.user_id == current_user.id
+    )
     if status is not None:
         query = query.where(UserGameCollection.status == status)
     query = query.order_by(UserGameCollection.created_at.desc())

@@ -33,9 +33,24 @@ def upgrade() -> None:
         sa.Column("notes", sa.Text(), nullable=True),
         sa.Column("source", sa.String(20), nullable=False, server_default="manual"),
         sa.Column("acquired_at", sa.Date(), nullable=True),
-        sa.Column("collection_visible_to", sa.String(20), nullable=False, server_default="friends"),
-        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=False),
-        sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=False),
+        sa.Column(
+            "collection_visible_to",
+            sa.String(20),
+            nullable=False,
+            server_default="friends",
+        ),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.text("now()"),
+            nullable=False,
+        ),
+        sa.Column(
+            "updated_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.text("now()"),
+            nullable=False,
+        ),
         sa.ForeignKeyConstraint(["user_id"], ["users.id"], ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("id"),
         sa.UniqueConstraint("user_id", "bgg_game_id", name="uq_user_bgg_game"),
@@ -59,13 +74,20 @@ def upgrade() -> None:
         sa.Column("requester_id", postgresql.UUID(as_uuid=True), nullable=False),
         sa.Column("addressee_id", postgresql.UUID(as_uuid=True), nullable=False),
         sa.Column("status", sa.String(20), nullable=False, server_default="pending"),
-        sa.Column("requested_at", sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=False),
+        sa.Column(
+            "requested_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.text("now()"),
+            nullable=False,
+        ),
         sa.Column("responded_at", sa.DateTime(timezone=True), nullable=True),
         sa.ForeignKeyConstraint(["requester_id"], ["users.id"], ondelete="CASCADE"),
         sa.ForeignKeyConstraint(["addressee_id"], ["users.id"], ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("id"),
         sa.UniqueConstraint("requester_id", "addressee_id", name="uq_friendship_pair"),
-        sa.CheckConstraint("requester_id != addressee_id", name="ck_no_self_friendship"),
+        sa.CheckConstraint(
+            "requester_id != addressee_id", name="ck_no_self_friendship"
+        ),
     )
     op.create_index(
         "ix_user_friendships_addressee_id_status",
@@ -76,8 +98,14 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    op.drop_index("ix_user_friendships_addressee_id_status", table_name="user_friendships")
+    op.drop_index(
+        "ix_user_friendships_addressee_id_status", table_name="user_friendships"
+    )
     op.drop_table("user_friendships")
-    op.drop_index("ix_user_game_collections_bgg_game_id", table_name="user_game_collections")
-    op.drop_index("ix_user_game_collections_user_id_status", table_name="user_game_collections")
+    op.drop_index(
+        "ix_user_game_collections_bgg_game_id", table_name="user_game_collections"
+    )
+    op.drop_index(
+        "ix_user_game_collections_user_id_status", table_name="user_game_collections"
+    )
     op.drop_table("user_game_collections")

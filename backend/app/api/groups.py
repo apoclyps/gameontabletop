@@ -125,7 +125,9 @@ async def list_groups(
     groups = []
     for group, member in rows:
         count_result = await session.execute(
-            select(func.count()).select_from(GroupMember).where(GroupMember.group_id == group.id)
+            select(func.count())
+            .select_from(GroupMember)
+            .where(GroupMember.group_id == group.id)
         )
         resp = GroupResponse.model_validate(group)
         resp.member_count = count_result.scalar_one()
@@ -151,7 +153,9 @@ async def get_group(
 ):
     group, member = await _get_group_and_member(group_id, session, current_user)
     count_result = await session.execute(
-        select(func.count()).select_from(GroupMember).where(GroupMember.group_id == group_id)
+        select(func.count())
+        .select_from(GroupMember)
+        .where(GroupMember.group_id == group_id)
     )
     resp = GroupResponse.model_validate(group)
     resp.member_count = count_result.scalar_one()
@@ -211,7 +215,9 @@ async def delete_group(
 ):
     group, _ = await _get_group_and_member(group_id, session, current_user)
     if group.owner_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Only the owner can delete this group")
+        raise HTTPException(
+            status_code=403, detail="Only the owner can delete this group"
+        )
     await session.delete(group)
     await session.commit()
 
@@ -318,7 +324,9 @@ async def create_invite(
         from app.config import settings
 
         invite_url = f"{settings.frontend_url}/invites/{invite.token}"
-        send_group_invite_email(body.email, group.name, current_user.username, invite_url)
+        send_group_invite_email(
+            body.email, group.name, current_user.username, invite_url
+        )
 
     return invite
 
@@ -393,7 +401,9 @@ async def accept_invite(
     current_user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
 ):
-    result = await session.execute(select(GroupInvite).where(GroupInvite.token == token))
+    result = await session.execute(
+        select(GroupInvite).where(GroupInvite.token == token)
+    )
     invite = result.scalar_one_or_none()
     now = datetime.now(timezone.utc)
     if not invite or invite.expires_at.replace(tzinfo=timezone.utc) < now:
@@ -419,7 +429,9 @@ async def accept_invite(
 
 
 async def _resolve_invite(token: str, session: AsyncSession) -> GroupInvite:
-    result = await session.execute(select(GroupInvite).where(GroupInvite.token == token))
+    result = await session.execute(
+        select(GroupInvite).where(GroupInvite.token == token)
+    )
     invite = result.scalar_one_or_none()
     now = datetime.now(timezone.utc)
     if not invite or invite.expires_at.replace(tzinfo=timezone.utc) < now:

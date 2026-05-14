@@ -42,10 +42,15 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 )
 async def register(body: RegisterRequest, session: AsyncSession = Depends(get_session)):
     existing = await session.execute(
-        select(User).where((User.email == body.email) | (User.username == body.username))
+        select(User).where(
+            (User.email == body.email) | (User.username == body.username)
+        )
     )
     if existing.scalar_one_or_none():
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Email or username already registered")
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Email or username already registered",
+        )
 
     user = User(
         email=body.email,
@@ -59,7 +64,9 @@ async def register(body: RegisterRequest, session: AsyncSession = Depends(get_se
     token = create_verification_token(user.email)
     send_verification_email(user.email, token)
 
-    return {"message": "Registration successful. Check your email to verify your account."}
+    return {
+        "message": "Registration successful. Check your email to verify your account."
+    }
 
 
 @router.post(
@@ -77,11 +84,17 @@ async def login(body: LoginRequest, session: AsyncSession = Depends(get_session)
     user = result.scalar_one_or_none()
 
     if not user or not verify_password(body.password, user.hashed_password):
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials"
+        )
     if not user.is_verified:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Email not verified")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, detail="Email not verified"
+        )
     if not user.is_active:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Account disabled")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, detail="Account disabled"
+        )
 
     return TokenResponse(
         access_token=create_access_token(str(user.id)),
@@ -114,12 +127,17 @@ async def refresh(body: RefreshRequest, session: AsyncSession = Depends(get_sess
             raise ValueError("wrong token type")
         user_id = uuid.UUID(payload["sub"])
     except (jwt.PyJWTError, ValueError, KeyError):
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token"
+        )
 
     result = await session.execute(select(User).where(User.id == user_id))
     user = result.scalar_one_or_none()
     if not user or not user.is_active or not user.is_verified:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found or inactive")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User not found or inactive",
+        )
 
     return TokenResponse(
         access_token=create_access_token(str(user.id)),
@@ -143,12 +161,17 @@ async def verify_email(token: str, session: AsyncSession = Depends(get_session))
             raise ValueError("wrong token type")
         email: str = payload["sub"]
     except (jwt.PyJWTError, ValueError, KeyError):
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid or expired verification token")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid or expired verification token",
+        )
 
     result = await session.execute(select(User).where(User.email == email))
     user = result.scalar_one_or_none()
     if not user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
+        )
 
     if not user.is_verified:
         user.is_verified = True
@@ -166,7 +189,9 @@ async def verify_email(token: str, session: AsyncSession = Depends(get_session))
         "A reset link is sent only if the address is registered."
     ),
 )
-async def forgot_password(body: ForgotPasswordRequest, session: AsyncSession = Depends(get_session)):
+async def forgot_password(
+    body: ForgotPasswordRequest, session: AsyncSession = Depends(get_session)
+):
     result = await session.execute(select(User).where(User.email == body.email))
     user = result.scalar_one_or_none()
     if user and user.is_active:
@@ -185,19 +210,26 @@ async def forgot_password(body: ForgotPasswordRequest, session: AsyncSession = D
         404: {"description": "User not found"},
     },
 )
-async def reset_password(body: ResetPasswordRequest, session: AsyncSession = Depends(get_session)):
+async def reset_password(
+    body: ResetPasswordRequest, session: AsyncSession = Depends(get_session)
+):
     try:
         payload = decode_token(body.token)
         if payload.get("type") != "reset":
             raise ValueError("wrong token type")
         user_id = uuid.UUID(payload["sub"])
     except (jwt.PyJWTError, ValueError, KeyError):
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid or expired reset token")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid or expired reset token",
+        )
 
     result = await session.execute(select(User).where(User.id == user_id))
     user = result.scalar_one_or_none()
     if not user or not user.is_active:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
+        )
 
     user.hashed_password = hash_password(body.new_password)
     await session.commit()

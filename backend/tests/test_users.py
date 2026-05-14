@@ -13,9 +13,14 @@ def no_email():
 async def _setup(client: AsyncClient):
     await client.post(
         "/api/auth/register",
-        json={"email": "user@example.com", "username": "testuser", "password": "Password1"},
+        json={
+            "email": "user@example.com",
+            "username": "testuser",
+            "password": "Password1",
+        },
     )
     from app.services.auth import create_verification_token
+
     token = create_verification_token("user@example.com")
     await client.get(f"/api/auth/verify-email?token={token}")
     login = await client.post(
@@ -28,7 +33,9 @@ async def _setup(client: AsyncClient):
 class TestGetProfile:
     async def test_authenticated(self, client: AsyncClient):
         token = await _setup(client)
-        r = await client.get("/api/users/me", headers={"Authorization": f"Bearer {token}"})
+        r = await client.get(
+            "/api/users/me", headers={"Authorization": f"Bearer {token}"}
+        )
         assert r.status_code == 200
         data = r.json()
         assert data["email"] == "user@example.com"

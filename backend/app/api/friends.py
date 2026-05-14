@@ -62,7 +62,9 @@ async def list_friends(
 
         # Count games with status="own" visible to us (public or friends-visible since we're friends)
         count_result = await session.execute(
-            select(func.count()).select_from(UserGameCollection).where(
+            select(func.count())
+            .select_from(UserGameCollection)
+            .where(
                 and_(
                     UserGameCollection.user_id == uuid.UUID(str(friend_id)),
                     UserGameCollection.status == "own",
@@ -95,7 +97,9 @@ async def list_friends(
     status_code=status.HTTP_201_CREATED,
     summary="Send a friend request by username",
     responses={
-        400: {"description": "Cannot send request (user not found, self-request, or blocked)"},
+        400: {
+            "description": "Cannot send request (user not found, self-request, or blocked)"
+        },
         401: {"description": "Unauthorized"},
         409: {"description": "Friend request already pending"},
     },
@@ -112,7 +116,9 @@ async def send_friend_request(
         raise HTTPException(status_code=400, detail="User not found")
 
     if uuid.UUID(str(target.id)) == current_user.id:
-        raise HTTPException(status_code=400, detail="Cannot send friend request to yourself")
+        raise HTTPException(
+            status_code=400, detail="Cannot send friend request to yourself"
+        )
 
     # Check for existing friendship/request
     existing_result = await session.execute(
@@ -137,7 +143,9 @@ async def send_friend_request(
         if existing.status == "accepted":
             raise HTTPException(status_code=400, detail="Already friends")
         if existing.status == "pending":
-            raise HTTPException(status_code=409, detail="Friend request already pending")
+            raise HTTPException(
+                status_code=409, detail="Friend request already pending"
+            )
         if existing.status == "declined":
             # Allow re-request by updating status back to pending
             existing.status = "pending"
@@ -335,7 +343,9 @@ async def patch_friendship(
 
     # Only addressee can accept/decline; either can block
     if body.status in ("accepted", "declined") and not is_addressee:
-        raise HTTPException(status_code=403, detail="Only the addressee can accept or decline")
+        raise HTTPException(
+            status_code=403, detail="Only the addressee can accept or decline"
+        )
 
     friendship.status = body.status
     friendship.responded_at = datetime.now(timezone.utc)
@@ -404,17 +414,21 @@ async def friends_collection(
     if not friend_ids:
         return []
 
-    query = select(UserGameCollection, User).join(
-        User, UserGameCollection.user_id == User.id
-    ).where(
-        and_(
-            UserGameCollection.user_id.in_([uuid.UUID(str(fid)) for fid in friend_ids]),
-            UserGameCollection.status == status,
-            UserGameCollection.bgg_game_id.isnot(None),
-            or_(
-                UserGameCollection.collection_visible_to == "public",
-                UserGameCollection.collection_visible_to == "friends",
-            ),
+    query = (
+        select(UserGameCollection, User)
+        .join(User, UserGameCollection.user_id == User.id)
+        .where(
+            and_(
+                UserGameCollection.user_id.in_(
+                    [uuid.UUID(str(fid)) for fid in friend_ids]
+                ),
+                UserGameCollection.status == status,
+                UserGameCollection.bgg_game_id.isnot(None),
+                or_(
+                    UserGameCollection.collection_visible_to == "public",
+                    UserGameCollection.collection_visible_to == "friends",
+                ),
+            )
         )
     )
 
@@ -449,7 +463,9 @@ async def friends_collection(
                 "game_thumbnail_url": entry.game_thumbnail_url,
                 "min_players": entry.min_players,
                 "max_players": entry.max_players,
-                "complexity": float(entry.complexity) if entry.complexity is not None else None,
+                "complexity": float(entry.complexity)
+                if entry.complexity is not None
+                else None,
                 "owners": [],
             }
         grouped[bgg_id]["owners"].append(
@@ -504,12 +520,14 @@ async def friend_suggestions(
         return []
 
     co_members_result = await session.execute(
-        select(GroupMember.user_id).where(
+        select(GroupMember.user_id)
+        .where(
             and_(
                 GroupMember.group_id.in_(my_group_ids),
                 GroupMember.user_id != current_user.id,
             )
-        ).distinct()
+        )
+        .distinct()
     )
     co_member_ids = [row[0] for row in co_members_result.all()]
 

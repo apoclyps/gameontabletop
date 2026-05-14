@@ -67,7 +67,9 @@ async def resolve_guest_token(token: str, session: AsyncSession = Depends(get_se
             .where(PollResponse.poll_id == poll.id)
             .where(PollResponse.guest_token_id == gt.id)
         )
-        my_responses = {str(r.option_id): r.response for r in responses_result.scalars().all()}
+        my_responses = {
+            str(r.option_id): r.response for r in responses_result.scalars().all()
+        }
 
         counts_result = await session.execute(
             select(PollResponse).where(PollResponse.poll_id == poll.id)
@@ -80,12 +82,18 @@ async def resolve_guest_token(token: str, session: AsyncSession = Depends(get_se
             for r in all_responses:
                 if r.option_id == opt.id and r.response in counts:
                     counts[r.response] += 1
-            option_outs.append(PollOptionOut(
-                id=opt.id, poll_id=opt.poll_id, proposed_date=opt.proposed_date,
-                start_time=opt.start_time, end_time=opt.end_time,
-                location_id=opt.location_id, display_order=opt.display_order,
-                response_counts=counts,
-            ))
+            option_outs.append(
+                PollOptionOut(
+                    id=opt.id,
+                    poll_id=opt.poll_id,
+                    proposed_date=opt.proposed_date,
+                    start_time=opt.start_time,
+                    end_time=opt.end_time,
+                    location_id=opt.location_id,
+                    display_order=opt.display_order,
+                    response_counts=counts,
+                )
+            )
 
         return GuestContext(
             type="poll",
@@ -138,7 +146,9 @@ async def guest_rsvp(
 
     occ = await session.get(NightOccurrence, gt.occurrence_id)
     if occ.status == "cancelled":
-        raise HTTPException(status_code=400, detail="This occurrence has been cancelled")
+        raise HTTPException(
+            status_code=400, detail="This occurrence has been cancelled"
+        )
 
     # Update guest_name on token
     gt.guest_name = body.guest_name
@@ -196,9 +206,13 @@ async def guest_poll_respond(
     gt.guest_name = body.guest_name
 
     from app.api.polls import _upsert_responses
+
     await _upsert_responses(
-        gt.poll_id, body.responses, session,
-        guest_token_id=gt.id, guest_name=body.guest_name,
+        gt.poll_id,
+        body.responses,
+        session,
+        guest_token_id=gt.id,
+        guest_name=body.guest_name,
     )
     await session.commit()
     return {"message": "Response recorded"}

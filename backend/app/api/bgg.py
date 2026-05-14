@@ -13,6 +13,7 @@ router = APIRouter(prefix="/bgg", tags=["bgg"])
 _game_cache: dict[int, tuple[float, dict]] = {}
 _CACHE_TTL = 3600
 
+
 def _auth_headers() -> dict[str, str]:
     token = settings.bgg_application_token
     return {"Authorization": f"Bearer {token}"} if token else {}
@@ -49,8 +50,12 @@ def _parse_game(item) -> dict:
     average = weight = users_rated = None
     if ratings is not None:
         average = _float(getattr(ratings.find("average"), "attrib", {}).get("value"))
-        weight = _float(getattr(ratings.find("averageweight"), "attrib", {}).get("value"))
-        users_rated = _int(getattr(ratings.find("usersrated"), "attrib", {}).get("value"))
+        weight = _float(
+            getattr(ratings.find("averageweight"), "attrib", {}).get("value")
+        )
+        users_rated = _int(
+            getattr(ratings.find("usersrated"), "attrib", {}).get("value")
+        )
 
     categories = [
         lnk.get("value")
@@ -84,7 +89,9 @@ def _parse_game(item) -> dict:
 
 async def _fetch_xml(url: str) -> str:
     if not settings.bgg_application_token:
-        raise HTTPException(status_code=503, detail="BGG_APPLICATION_TOKEN not configured")
+        raise HTTPException(
+            status_code=503, detail="BGG_APPLICATION_TOKEN not configured"
+        )
 
     async with httpx.AsyncClient(timeout=15, follow_redirects=True) as client:
         for attempt in range(4):
@@ -97,7 +104,9 @@ async def _fetch_xml(url: str) -> str:
             if resp.status_code == 429:
                 await asyncio.sleep(5)
                 continue
-            raise HTTPException(status_code=502, detail=f"BGG API returned {resp.status_code}")
+            raise HTTPException(
+                status_code=502, detail=f"BGG API returned {resp.status_code}"
+            )
     raise HTTPException(status_code=504, detail="BGG API timed out")
 
 
@@ -162,13 +171,19 @@ async def search_bgg(q: str):
     root = ElementTree.fromstring(xml)
     results = []
     for item in root.findall("item"):
-        name_el = next((n for n in item.findall("name") if n.get("type") == "primary"), None)
+        name_el = next(
+            (n for n in item.findall("name") if n.get("type") == "primary"), None
+        )
         if not name_el:
             continue
         year_el = item.find("yearpublished")
-        results.append({
-            "bgg_id": int(item.get("id")),
-            "title": name_el.get("value"),
-            "year_published": _int(year_el.get("value") if year_el is not None else None),
-        })
+        results.append(
+            {
+                "bgg_id": int(item.get("id")),
+                "title": name_el.get("value"),
+                "year_published": _int(
+                    year_el.get("value") if year_el is not None else None
+                ),
+            }
+        )
     return results[:20]

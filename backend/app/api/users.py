@@ -72,7 +72,9 @@ async def upload_avatar(
 ):
     content_type = file.content_type or ""
     if content_type not in _ALLOWED_TYPES:
-        raise HTTPException(status_code=400, detail="File must be image/jpeg, image/png, or image/webp")
+        raise HTTPException(
+            status_code=400, detail="File must be image/jpeg, image/png, or image/webp"
+        )
 
     data = await file.read(_MAX_BYTES + 1)
     if len(data) > _MAX_BYTES:
@@ -99,7 +101,9 @@ async def upload_avatar(
         raise HTTPException(status_code=502, detail="Storage upload failed")
 
     timestamp = int(time.time())
-    cdn_url = f"{settings.supabase_url}/storage/v1/object/public/{object_path}?t={timestamp}"
+    cdn_url = (
+        f"{settings.supabase_url}/storage/v1/object/public/{object_path}?t={timestamp}"
+    )
     current_user.avatar_url = cdn_url
     await session.commit()
     await session.refresh(current_user)

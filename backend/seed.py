@@ -90,40 +90,76 @@ USERS = [
 
 # (requester_username, addressee_username, status)
 FRIENDSHIPS = [
-    ("alice", "bob",   "accepted"),
+    ("alice", "bob", "accepted"),
     ("alice", "carol", "accepted"),
-    ("bob",   "dave",  "accepted"),
-    ("carol", "eve",   "accepted"),
-    ("alice", "dave",  "pending"),
+    ("bob", "dave", "accepted"),
+    ("carol", "eve", "accepted"),
+    ("alice", "dave", "pending"),
 ]
 
 GAMES = {
     "alice": [
-        {"title": "Ticket to Ride",  "bgg_id": 9209,   "min": 2, "max": 5, "complexity": 1.86},
-        {"title": "Wingspan",        "bgg_id": 266192,  "min": 1, "max": 5, "complexity": 2.45},
-        {"title": "Pandemic",        "bgg_id": 30549,   "min": 2, "max": 4, "complexity": 2.41},
-        {"title": "7 Wonders",       "bgg_id": 68448,   "min": 2, "max": 7, "complexity": 2.33},
+        {
+            "title": "Ticket to Ride",
+            "bgg_id": 9209,
+            "min": 2,
+            "max": 5,
+            "complexity": 1.86,
+        },
+        {"title": "Wingspan", "bgg_id": 266192, "min": 1, "max": 5, "complexity": 2.45},
+        {"title": "Pandemic", "bgg_id": 30549, "min": 2, "max": 4, "complexity": 2.41},
+        {"title": "7 Wonders", "bgg_id": 68448, "min": 2, "max": 7, "complexity": 2.33},
     ],
     "bob": [
-        {"title": "Terraforming Mars", "bgg_id": 167791, "min": 1, "max": 5, "complexity": 3.25},
-        {"title": "Gloomhaven",        "bgg_id": 174430, "min": 1, "max": 4, "complexity": 3.86},
-        {"title": "Scythe",            "bgg_id": 169786, "min": 1, "max": 5, "complexity": 3.44},
-        {"title": "Brass: Birmingham", "bgg_id": 224517, "min": 2, "max": 4, "complexity": 3.91},
+        {
+            "title": "Terraforming Mars",
+            "bgg_id": 167791,
+            "min": 1,
+            "max": 5,
+            "complexity": 3.25,
+        },
+        {
+            "title": "Gloomhaven",
+            "bgg_id": 174430,
+            "min": 1,
+            "max": 4,
+            "complexity": 3.86,
+        },
+        {"title": "Scythe", "bgg_id": 169786, "min": 1, "max": 5, "complexity": 3.44},
+        {
+            "title": "Brass: Birmingham",
+            "bgg_id": 224517,
+            "min": 2,
+            "max": 4,
+            "complexity": 3.91,
+        },
     ],
     "carol": [
-        {"title": "Catan",     "bgg_id": 13,     "min": 3, "max": 4, "complexity": 2.32},
-        {"title": "Codenames", "bgg_id": 178900, "min": 2, "max": 8, "complexity": 1.26},
-        {"title": "Pandemic",  "bgg_id": 30549,  "min": 2, "max": 4, "complexity": 2.41},
+        {"title": "Catan", "bgg_id": 13, "min": 3, "max": 4, "complexity": 2.32},
+        {
+            "title": "Codenames",
+            "bgg_id": 178900,
+            "min": 2,
+            "max": 8,
+            "complexity": 1.26,
+        },
+        {"title": "Pandemic", "bgg_id": 30549, "min": 2, "max": 4, "complexity": 2.41},
     ],
     "dave": [
-        {"title": "Dominion", "bgg_id": 36218,  "min": 2, "max": 4, "complexity": 2.33},
-        {"title": "Agricola", "bgg_id": 31260,  "min": 1, "max": 5, "complexity": 3.64},
-        {"title": "Scythe",   "bgg_id": 169786, "min": 1, "max": 5, "complexity": 3.44},
+        {"title": "Dominion", "bgg_id": 36218, "min": 2, "max": 4, "complexity": 2.33},
+        {"title": "Agricola", "bgg_id": 31260, "min": 1, "max": 5, "complexity": 3.64},
+        {"title": "Scythe", "bgg_id": 169786, "min": 1, "max": 5, "complexity": 3.44},
     ],
     "eve": [
-        {"title": "Sushi Go Party!", "bgg_id": 192291, "min": 2, "max": 8, "complexity": 1.12},
-        {"title": "Azul",            "bgg_id": 230802, "min": 2, "max": 4, "complexity": 1.77},
-        {"title": "Catan",           "bgg_id": 13,     "min": 3, "max": 4, "complexity": 2.32},
+        {
+            "title": "Sushi Go Party!",
+            "bgg_id": 192291,
+            "min": 2,
+            "max": 8,
+            "complexity": 1.12,
+        },
+        {"title": "Azul", "bgg_id": 230802, "min": 2, "max": 4, "complexity": 1.77},
+        {"title": "Catan", "bgg_id": 13, "min": 3, "max": 4, "complexity": 2.32},
     ],
 }
 
@@ -138,9 +174,9 @@ GROUPS = [
         "owner": "alice",
         "members": [
             ("alice", "organiser"),
-            ("bob",   "member"),
+            ("bob", "member"),
             ("carol", "member"),
-            ("dave",  "member"),
+            ("dave", "member"),
         ],
         "locations": [
             {
@@ -165,17 +201,43 @@ GROUPS = [
                 "location_name": "Alice's Place",
                 "created_by": "alice",
                 "occurrences": [
-                    {"date": date(2026, 4, 17), "status": "completed", "notes": "Played Wingspan — Alice won!"},
-                    {"date": date(2026, 4, 24), "status": "completed", "notes": "Terraforming Mars marathon."},
-                    {"date": date(2026, 5,  1), "status": "completed", "notes": "Short games night — Codenames and Azul."},
+                    {
+                        "date": date(2026, 4, 17),
+                        "status": "completed",
+                        "notes": "Played Wingspan — Alice won!",
+                    },
+                    {
+                        "date": date(2026, 4, 24),
+                        "status": "completed",
+                        "notes": "Terraforming Mars marathon.",
+                    },
+                    {
+                        "date": date(2026, 5, 1),
+                        "status": "completed",
+                        "notes": "Short games night — Codenames and Azul.",
+                    },
                     {"date": date(2026, 5, 15), "status": "scheduled", "notes": None},
                     {"date": date(2026, 5, 22), "status": "scheduled", "notes": None},
-                    {"date": date(2026, 6,  5), "status": "scheduled", "notes": None},
+                    {"date": date(2026, 6, 5), "status": "scheduled", "notes": None},
                 ],
                 "rsvps": {
-                    date(2026, 4, 17): [("alice", "yes"), ("bob", "yes"), ("carol", "yes"), ("dave", "no")],
-                    date(2026, 4, 24): [("alice", "yes"), ("bob", "yes"), ("carol", "maybe"), ("dave", "yes")],
-                    date(2026, 5,  1): [("alice", "yes"), ("bob", "no"), ("carol", "yes")],
+                    date(2026, 4, 17): [
+                        ("alice", "yes"),
+                        ("bob", "yes"),
+                        ("carol", "yes"),
+                        ("dave", "no"),
+                    ],
+                    date(2026, 4, 24): [
+                        ("alice", "yes"),
+                        ("bob", "yes"),
+                        ("carol", "maybe"),
+                        ("dave", "yes"),
+                    ],
+                    date(2026, 5, 1): [
+                        ("alice", "yes"),
+                        ("bob", "no"),
+                        ("carol", "yes"),
+                    ],
                     date(2026, 5, 15): [("alice", "yes"), ("bob", "yes")],
                     date(2026, 5, 22): [("alice", "yes")],
                 },
@@ -190,16 +252,38 @@ GROUPS = [
                 "location_name": "Online",
                 "created_by": "alice",
                 "occurrences": [
-                    {"date": date(2026, 3,  7), "status": "completed", "notes": "Gloomhaven scenario 5 — victory!"},
-                    {"date": date(2026, 4,  4), "status": "completed", "notes": "Scythe with all factions."},
-                    {"date": date(2026, 5,  2), "status": "completed", "notes": "Agricola full game."},
-                    {"date": date(2026, 6,  6), "status": "scheduled", "notes": None},
-                    {"date": date(2026, 7,  4), "status": "scheduled", "notes": None},
+                    {
+                        "date": date(2026, 3, 7),
+                        "status": "completed",
+                        "notes": "Gloomhaven scenario 5 — victory!",
+                    },
+                    {
+                        "date": date(2026, 4, 4),
+                        "status": "completed",
+                        "notes": "Scythe with all factions.",
+                    },
+                    {
+                        "date": date(2026, 5, 2),
+                        "status": "completed",
+                        "notes": "Agricola full game.",
+                    },
+                    {"date": date(2026, 6, 6), "status": "scheduled", "notes": None},
+                    {"date": date(2026, 7, 4), "status": "scheduled", "notes": None},
                 ],
                 "rsvps": {
-                    date(2026, 3,  7): [("alice", "yes"), ("bob", "yes"), ("carol", "yes"), ("dave", "yes")],
-                    date(2026, 4,  4): [("alice", "yes"), ("bob", "yes"), ("carol", "no"), ("dave", "yes")],
-                    date(2026, 6,  6): [("alice", "yes"), ("carol", "yes")],
+                    date(2026, 3, 7): [
+                        ("alice", "yes"),
+                        ("bob", "yes"),
+                        ("carol", "yes"),
+                        ("dave", "yes"),
+                    ],
+                    date(2026, 4, 4): [
+                        ("alice", "yes"),
+                        ("bob", "yes"),
+                        ("carol", "no"),
+                        ("dave", "yes"),
+                    ],
+                    date(2026, 6, 6): [("alice", "yes"), ("carol", "yes")],
                 },
             },
         ],
@@ -211,9 +295,9 @@ GROUPS = [
         "is_public": False,
         "owner": "bob",
         "members": [
-            ("bob",  "organiser"),
+            ("bob", "organiser"),
             ("dave", "member"),
-            ("eve",  "member"),
+            ("eve", "member"),
         ],
         "locations": [
             {
@@ -233,14 +317,30 @@ GROUPS = [
                 "location_name": "Bob's Basement",
                 "created_by": "bob",
                 "occurrences": [
-                    {"date": date(2026, 4, 26), "status": "completed", "notes": "Brass: Birmingham. Dave won."},
-                    {"date": date(2026, 5, 10), "status": "completed", "notes": "Spirit Island on hard difficulty."},
+                    {
+                        "date": date(2026, 4, 26),
+                        "status": "completed",
+                        "notes": "Brass: Birmingham. Dave won.",
+                    },
+                    {
+                        "date": date(2026, 5, 10),
+                        "status": "completed",
+                        "notes": "Spirit Island on hard difficulty.",
+                    },
                     {"date": date(2026, 5, 24), "status": "scheduled", "notes": None},
-                    {"date": date(2026, 6,  7), "status": "scheduled", "notes": None},
+                    {"date": date(2026, 6, 7), "status": "scheduled", "notes": None},
                 ],
                 "rsvps": {
-                    date(2026, 4, 26): [("bob", "yes"), ("dave", "yes"), ("eve", "yes")],
-                    date(2026, 5, 10): [("bob", "yes"), ("dave", "yes"), ("eve", "maybe")],
+                    date(2026, 4, 26): [
+                        ("bob", "yes"),
+                        ("dave", "yes"),
+                        ("eve", "yes"),
+                    ],
+                    date(2026, 5, 10): [
+                        ("bob", "yes"),
+                        ("dave", "yes"),
+                        ("eve", "maybe"),
+                    ],
                     date(2026, 5, 24): [("bob", "yes"), ("dave", "yes")],
                 },
             },
@@ -249,6 +349,7 @@ GROUPS = [
 ]
 
 # ─── Seeder functions ─────────────────────────────────────────────────────────
+
 
 async def _seed_users(session: AsyncSession, hashed_pw: str) -> dict[str, User]:
     users: dict[str, User] = {}
@@ -295,12 +396,14 @@ async def _seed_friendships(session: AsyncSession, users: dict[str, User]) -> No
             )
         )
         if result.scalar_one_or_none() is None:
-            session.add(UserFriendship(
-                requester_id=req_id,
-                addressee_id=addr_id,
-                status=status,
-                responded_at=datetime.now(UTC) if status == "accepted" else None,
-            ))
+            session.add(
+                UserFriendship(
+                    requester_id=req_id,
+                    addressee_id=addr_id,
+                    status=status,
+                    responded_at=datetime.now(UTC) if status == "accepted" else None,
+                )
+            )
             print(f"  + {req_name} <-> {addr_name} ({status})")
         else:
             print(f"  ~ {req_name} <-> {addr_name} (exists)")
@@ -319,17 +422,19 @@ async def _seed_games(session: AsyncSession, users: dict[str, User]) -> None:
                 )
             )
             if result.scalar_one_or_none() is None:
-                session.add(UserGameCollection(
-                    user_id=user.id,
-                    bgg_game_id=game["bgg_id"],
-                    game_title=game["title"],
-                    min_players=game["min"],
-                    max_players=game["max"],
-                    complexity=game["complexity"],
-                    status="own",
-                    source="manual",
-                    collection_visible_to="friends",
-                ))
+                session.add(
+                    UserGameCollection(
+                        user_id=user.id,
+                        bgg_game_id=game["bgg_id"],
+                        game_title=game["title"],
+                        min_players=game["min"],
+                        max_players=game["max"],
+                        complexity=game["complexity"],
+                        status="own",
+                        source="manual",
+                        collection_visible_to="friends",
+                    )
+                )
                 print(f"  + {game['title']} -> @{username}")
             else:
                 print(f"  ~ {game['title']} -> @{username} (exists)")
@@ -361,7 +466,9 @@ async def _seed_groups(session: AsyncSession, users: dict[str, User]) -> None:
             member = await session.get(GroupMember, (group.id, users[username].id))
             if member is None:
                 session.add(
-                    GroupMember(group_id=group.id, user_id=users[username].id, role=role)
+                    GroupMember(
+                        group_id=group.id, user_id=users[username].id, role=role
+                    )
                 )
                 print(f"    + member @{username} ({role})")
             else:

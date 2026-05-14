@@ -8,14 +8,21 @@ from app.models.scheduler import NightOccurrence
 from app.models.user import User
 
 
-async def _register_login(client, db_session, email="u@test.com", username="testuser", password="Passw0rd!"):
+async def _register_login(
+    client, db_session, email="u@test.com", username="testuser", password="Passw0rd!"
+):
     with patch("app.services.email.send_verification_email"):
-        await client.post("/api/auth/register", json={"email": email, "username": username, "password": password})
+        await client.post(
+            "/api/auth/register",
+            json={"email": email, "username": username, "password": password},
+        )
     result = await db_session.execute(select(User).where(User.email == email))
     user = result.scalar_one()
     user.is_verified = True
     await db_session.commit()
-    r = await client.post("/api/auth/login", json={"email": email, "password": password})
+    r = await client.post(
+        "/api/auth/login", json={"email": email, "password": password}
+    )
     return r.json()["access_token"]
 
 
@@ -57,7 +64,11 @@ class TestCreateSeries:
 
         series_r = await client.post(
             f"/api/groups/{group['id']}/series",
-            json={"title": "One Night", "recurrence": "once", "series_start_date": start},
+            json={
+                "title": "One Night",
+                "recurrence": "once",
+                "series_start_date": start,
+            },
             headers=_auth(token),
         )
         series_id = series_r.json()["id"]
@@ -95,7 +106,11 @@ class TestCreateSeries:
 
         series_r = await client.post(
             f"/api/groups/{group['id']}/series",
-            json={"title": "Weekly", "recurrence": "weekly", "series_start_date": start},
+            json={
+                "title": "Weekly",
+                "recurrence": "weekly",
+                "series_start_date": start,
+            },
             headers=_auth(token),
         )
         series_id = series_r.json()["id"]
@@ -113,10 +128,14 @@ class TestCreateSeries:
         group = await _create_group(client, token1)
         invite = (
             await client.post(
-                f"/api/groups/{group['id']}/invites", json={"expires_in_days": 7}, headers=_auth(token1)
+                f"/api/groups/{group['id']}/invites",
+                json={"expires_in_days": 7},
+                headers=_auth(token1),
             )
         ).json()
-        await client.post(f"/api/invites/{invite['token']}/accept", headers=_auth(token2))
+        await client.post(
+            f"/api/invites/{invite['token']}/accept", headers=_auth(token2)
+        )
 
         r = await client.post(
             f"/api/groups/{group['id']}/series",
@@ -133,7 +152,11 @@ class TestGetSeries:
         start = str(date.today())
         series_r = await client.post(
             f"/api/groups/{group['id']}/series",
-            json={"title": "Biweekly", "recurrence": "biweekly", "series_start_date": start},
+            json={
+                "title": "Biweekly",
+                "recurrence": "biweekly",
+                "series_start_date": start,
+            },
             headers=_auth(token),
         )
         series_id = series_r.json()["id"]
@@ -151,7 +174,9 @@ class TestGetSeries:
             json={"title": "Games", "recurrence": "once"},
             headers=_auth(token1),
         )
-        r = await client.get(f"/api/series/{series_r.json()['id']}", headers=_auth(token2))
+        r = await client.get(
+            f"/api/series/{series_r.json()['id']}", headers=_auth(token2)
+        )
         assert r.status_code == 403
 
 
@@ -161,12 +186,18 @@ class TestUpdateSeries:
         group = await _create_group(client, token)
         series_r = await client.post(
             f"/api/groups/{group['id']}/series",
-            json={"title": "Games", "recurrence": "weekly", "series_start_date": str(date.today())},
+            json={
+                "title": "Games",
+                "recurrence": "weekly",
+                "series_start_date": str(date.today()),
+            },
             headers=_auth(token),
         )
         series_id = series_r.json()["id"]
 
-        r = await client.patch(f"/api/series/{series_id}", json={"status": "on_hold"}, headers=_auth(token))
+        r = await client.patch(
+            f"/api/series/{series_id}", json={"status": "on_hold"}, headers=_auth(token)
+        )
         assert r.status_code == 200
         assert r.json()["status"] == "on_hold"
 
@@ -179,7 +210,9 @@ class TestUpdateSeries:
             headers=_auth(token),
         )
         r = await client.patch(
-            f"/api/series/{series_r.json()['id']}", json={"status": "cancelled"}, headers=_auth(token)
+            f"/api/series/{series_r.json()['id']}",
+            json={"status": "cancelled"},
+            headers=_auth(token),
         )
         assert r.status_code == 200
         assert r.json()["status"] == "cancelled"
@@ -193,7 +226,9 @@ class TestUpdateSeries:
             headers=_auth(token),
         )
         r = await client.patch(
-            f"/api/series/{series_r.json()['id']}", json={"title": "New Title"}, headers=_auth(token)
+            f"/api/series/{series_r.json()['id']}",
+            json={"title": "New Title"},
+            headers=_auth(token),
         )
         assert r.json()["title"] == "New Title"
 
@@ -208,7 +243,9 @@ class TestListOccurrences:
             json={"title": "Games", "recurrence": "weekly", "series_start_date": start},
             headers=_auth(token),
         )
-        r = await client.get(f"/api/series/{series_r.json()['id']}/occurrences", headers=_auth(token))
+        r = await client.get(
+            f"/api/series/{series_r.json()['id']}/occurrences", headers=_auth(token)
+        )
         assert r.status_code == 200
         assert len(r.json()) >= 1
 
@@ -221,6 +258,8 @@ class TestListOccurrences:
             json={"title": "Games", "recurrence": "weekly", "series_start_date": start},
             headers=_auth(token),
         )
-        r = await client.get(f"/api/series/{series_r.json()['id']}/occurrences", headers=_auth(token))
+        r = await client.get(
+            f"/api/series/{series_r.json()['id']}/occurrences", headers=_auth(token)
+        )
         dates = [o["occurrence_date"] for o in r.json()]
         assert dates == sorted(dates)

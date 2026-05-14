@@ -55,7 +55,9 @@ async def _build_poll_out(
     opts_result = await session.execute(
         select(PollOption)
         .where(PollOption.poll_id == poll.id)
-        .order_by(PollOption.display_order, PollOption.proposed_date, PollOption.start_time)
+        .order_by(
+            PollOption.display_order, PollOption.proposed_date, PollOption.start_time
+        )
     )
     options = list(opts_result.scalars().all())
 
@@ -130,7 +132,11 @@ async def create_poll(
     await session.flush()
 
     for i, opt_data in enumerate(body.options):
-        opt = PollOption(poll_id=poll.id, display_order=opt_data.display_order or i, **opt_data.model_dump(exclude={"display_order"}))
+        opt = PollOption(
+            poll_id=poll.id,
+            display_order=opt_data.display_order or i,
+            **opt_data.model_dump(exclude={"display_order"}),
+        )
         session.add(opt)
 
     await session.commit()
@@ -138,12 +144,16 @@ async def create_poll(
 
     group = await session.get(Group, series.group_id)
     members_result = await session.execute(
-        select(User).join(GroupMember, User.id == GroupMember.user_id).where(GroupMember.group_id == series.group_id)
+        select(User)
+        .join(GroupMember, User.id == GroupMember.user_id)
+        .where(GroupMember.group_id == series.group_id)
     )
     poll_url = f"{settings.frontend_url}/polls/{poll.id}"
     for user in members_result.scalars().all():
         if user.id != current_user.id:
-            send_poll_created_email(user.email, group.name, series.title, body.title, poll_url)
+            send_poll_created_email(
+                user.email, group.name, series.title, body.title, poll_url
+            )
 
     return await _build_poll_out(poll, session, current_user.id)
 
@@ -220,16 +230,22 @@ async def add_poll_option(
     if member.role != "organiser":
         raise HTTPException(status_code=403, detail="Organiser access required")
     if poll.status != "open":
-        raise HTTPException(status_code=400, detail="Cannot add options to a closed or resolved poll")
+        raise HTTPException(
+            status_code=400, detail="Cannot add options to a closed or resolved poll"
+        )
 
     opt = PollOption(poll_id=poll_id, **body.model_dump())
     session.add(opt)
     await session.commit()
     await session.refresh(opt)
     return PollOptionOut(
-        id=opt.id, poll_id=opt.poll_id, proposed_date=opt.proposed_date,
-        start_time=opt.start_time, end_time=opt.end_time,
-        location_id=opt.location_id, display_order=opt.display_order,
+        id=opt.id,
+        poll_id=opt.poll_id,
+        proposed_date=opt.proposed_date,
+        start_time=opt.start_time,
+        end_time=opt.end_time,
+        location_id=opt.location_id,
+        display_order=opt.display_order,
         response_counts={"yes": 0, "no": 0, "maybe": 0},
     )
 
@@ -255,7 +271,9 @@ async def remove_poll_option(
     if member.role != "organiser":
         raise HTTPException(status_code=403, detail="Organiser access required")
     if poll.status != "open":
-        raise HTTPException(status_code=400, detail="Cannot modify a closed or resolved poll")
+        raise HTTPException(
+            status_code=400, detail="Cannot modify a closed or resolved poll"
+        )
 
     opt = await session.get(PollOption, option_id)
     if not opt or opt.poll_id != poll_id:
@@ -315,7 +333,9 @@ async def resolve_poll(
 
     chosen = await session.get(PollOption, body.chosen_option_id)
     if not chosen or chosen.poll_id != poll_id:
-        raise HTTPException(status_code=400, detail="Option does not belong to this poll")
+        raise HTTPException(
+            status_code=400, detail="Option does not belong to this poll"
+        )
 
     poll.status = "resolved"
     poll.chosen_option_id = chosen.id
@@ -346,7 +366,9 @@ async def resolve_poll(
     chosen_date_str = chosen.proposed_date.strftime("%A, %d %B %Y")
     chosen_time_str = chosen.start_time.strftime("%H:%M")
     for user in members_result.scalars().all():
-        send_poll_resolved_email(user.email, series.title, chosen_date_str, chosen_time_str, occ_url)
+        send_poll_resolved_email(
+            user.email, series.title, chosen_date_str, chosen_time_str, occ_url
+        )
 
     return await _build_poll_out(poll, session, current_user.id)
 
@@ -440,7 +462,8 @@ async def _upsert_responses(
             select(PollResponse)
             .where(PollResponse.option_id == item.option_id)
             .where(
-                PollResponse.user_id == user_id if user_id
+                PollResponse.user_id == user_id
+                if user_id
                 else PollResponse.guest_token_id == guest_token_id
             )
         )

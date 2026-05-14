@@ -53,7 +53,9 @@ def send_password_reset_email(to_email: str, token: str) -> None:
     )
 
 
-def send_group_invite_email(to_email: str, group_name: str, inviter_username: str, invite_url: str) -> None:
+def send_group_invite_email(
+    to_email: str, group_name: str, inviter_username: str, invite_url: str
+) -> None:
     _send(
         to_email,
         f"You're invited to join {group_name} on Game On Tabletop",
@@ -67,7 +69,11 @@ def send_group_invite_email(to_email: str, group_name: str, inviter_username: st
 
 
 def send_occurrence_notification_email(
-    to_email: str, series_title: str, occurrence_date: str, group_name: str, occurrence_url: str
+    to_email: str,
+    series_title: str,
+    occurrence_date: str,
+    group_name: str,
+    occurrence_url: str,
 ) -> None:
     _send(
         to_email,
@@ -80,7 +86,9 @@ def send_occurrence_notification_email(
     )
 
 
-def send_poll_created_email(to_email: str, group_name: str, series_title: str, poll_title: str, poll_url: str) -> None:
+def send_poll_created_email(
+    to_email: str, group_name: str, series_title: str, poll_title: str, poll_url: str
+) -> None:
     _send(
         to_email,
         f"Help pick a date for {series_title}",
@@ -92,7 +100,13 @@ def send_poll_created_email(to_email: str, group_name: str, series_title: str, p
     )
 
 
-def send_poll_resolved_email(to_email: str, series_title: str, chosen_date: str, chosen_time: str, occurrence_url: str) -> None:
+def send_poll_resolved_email(
+    to_email: str,
+    series_title: str,
+    chosen_date: str,
+    chosen_time: str,
+    occurrence_url: str,
+) -> None:
     _send(
         to_email,
         f"{series_title} is happening on {chosen_date}",
