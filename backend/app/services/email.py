@@ -7,7 +7,9 @@ logger = logging.getLogger(__name__)
 
 def _send(to_email: str, subject: str, html_content: str) -> None:
     # Email sending not yet implemented — Resend integration pending.
-    logger.info("Email suppressed (no provider configured): [%s] → %s", subject, to_email)
+    logger.info(
+        "Email suppressed (no provider configured): [%s] → %s", subject, to_email
+    )
 
 
 def send_verification_email(to_email: str, token: str) -> None:
